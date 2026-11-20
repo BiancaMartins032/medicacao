@@ -1,0 +1,400 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Remedinho</title>
+<style>
+:root {
+  --pink: #de78a5;
+  --light: #f9e5ee;
+  --bg: #fff9f7;
+  --text: #51434b;
+  --green: #75ae91;
+  --red: #d87987;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+}
+header {
+  padding: 22px 18px 12px;
+  text-align: center;
+}
+header h1 {
+  color: var(--pink);
+  margin: 0;
+  font-size: 25px;
+}
+header p { color: #99838d; font-size: 13px; }
+main { max-width: 600px; margin: auto; padding: 12px 16px 100px; }
+.card {
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 18px #e9cbd733;
+}
+.cat {
+  background: var(--light);
+  border-radius: 22px;
+  padding: 18px;
+  text-align: center;
+}
+.cat img { width: 145px; height: 135px; object-fit: contain; }
+.cat h2 { font-size: 19px; margin: 5px; }
+.cat p { font-size: 13px; margin: 5px; }
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--pink);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+button.secondary { background: var(--light); color: var(--text); }
+button:disabled { opacity: .5; cursor: default; }
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ead5df;
+  border-radius: 11px;
+  margin: 6px 0 13px;
+  background: white;
+  color: var(--text);
+}
+label { font-size: 13px; font-weight: bold; }
+nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 4px calc(12px + env(safe-area-inset-bottom));
+  box-shadow: 0 -3px 15px #e9cbd733;
+}
+nav button {
+  background: transparent;
+  color: #917b86;
+  padding: 8px 5px;
+  font-size: 12px;
+}
+nav button.active { color: var(--pink); background: var(--light); }
+.page { display: none; }
+.page.active { display: block; }
+.item {
+  border: 1px solid #f0e2e8;
+  border-radius: 14px;
+  padding: 13px;
+  margin: 10px 0;
+}
+.item strong { display: block; margin-bottom: 5px; }
+.item small { color: #99838d; }
+.actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.actions button { font-size: 12px; padding: 9px 11px; }
+.month {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  gap: 5px;
+}
+.day {
+  background: #fff5f8;
+  border-radius: 10px;
+  text-align: center;
+  padding: 9px 2px;
+  min-height: 43px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.day.good { background: #e3f3e9; }
+.day.bad { background: #fae3e7; }
+.day.partial { background: #fff0d8; }
+.day.today { outline: 2px solid var(--pink); }
+.day.selected { border: 2px solid var(--pink); }
+.legend { font-size: 11px; color: #917b86; margin-top: 12px; }
+.empty { text-align: center; color: #99838d; padding: 20px 5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>♡ Meu Remedinho ♡</h1>
+  <p>Um carinho a mais com você mesma.</p>
+</header>
+
+<main>
+<section id="home" class="page active">
+  <div class="cat card">
+    <img id="cat" alt="Gatinho do Meu Remedinho"
+      src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=happy-cat&backgroundColor=ffe4ef">
+    <h2 id="catTitle">Oi! Vamos cuidar de você?</h2>
+    <p id="catMessage">Estou aqui para acompanhar seu dia!</p>
+  </div>
+
+  <div class="card">
+    <h3>Seus lembretes de hoje</h3>
+    <div id="todayList"></div>
+  </div>
+  <div class="card">
+    <h3>Seu dia</h3>
+    <p id="progress">Nenhum medicamento cadastrado ainda.</p>
+  </div>
+</section>
+
+<section id="calendarPage" class="page">
+  <div class="card">
+    <h3>Seu calendário ♡</h3>
+    <div class="month">
+      <button class="secondary" onclick="changeMonth(-1)">‹</button>
+      <strong id="monthName"></strong>
+      <button class="secondary" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="calendar" id="calendar"></div>
+    <div class="legend">🟢 Tudo tomado · 🔴 Houve esquecimento · 🟡 Parcial ou pendente</div>
+    <div id="dayDetails"></div>
+  </div>
+</section>
+
+<section id="medsPage" class="page">
+  <div class="card">
+    <h3>Adicionar medicamento</h3>
+    <form id="medForm">
+      <label>Nome do medicamento</label>
+      <input id="medName" required placeholder="Ex.: Medicamento A">
+      <label>Dosagem ou quantidade</label>
+      <input id="dose" placeholder="Ex.: 1 comprimido">
+      <label>Horário</label>
+      <input id="time" type="time" required>
+      <button type="submit">Salvar medicamento</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Meus medicamentos</h3>
+    <div id="medList"></div>
+  </div>
+</section>
+
+<section id="settingsPage" class="page">
+  <div class="card">
+    <h3>Configurações</h3>
+    <p>Seus dados ficam salvos neste navegador.</p>
+    <button class="secondary" onclick="exportData()">Fazer backup dos dados</button>
+    <p style="font-size:12px;color:#99838d">Guarde seu backup em local seguro. Não compartilhe informações médicas.</p>
+  </div>
+</section>
+</main>
+
+<nav>
+  <button class="active" onclick="showPage('home',this)">⌂<br>Início</button>
+  <button onclick="showPage('calendarPage',this)">▦<br>Calendário</button>
+  <button onclick="showPage('medsPage',this)">♡<br>Medicamentos</button>
+  <button onclick="showPage('settingsPage',this)">☰<br>Mais</button>
+</nav>
+
+<script>
+const $ = id => document.getElementById(id);
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const load = (key, fallback) => {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+  catch { return fallback; }
+};
+let meds = load('remedinho_meds', []);
+let records = load('remedinho_records', {});
+let viewDate = new Date();
+let selectedDate = today();
+
+function save() {
+  localStorage.setItem('remedinho_meds', JSON.stringify(meds));
+  localStorage.setItem('remedinho_records', JSON.stringify(records));
+}
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $(id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+$('medForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  meds.push({
+    id: crypto.randomUUID(),
+    name: $('medName').value.trim(),
+    dose: $('dose').value.trim(),
+    time: $('time').value
+  });
+  save();
+  e.target.reset();
+  render();
+});
+function statusFor(m,date) {
+  return records[date]?.[m.id] || 'pending';
+}
+function register(m,date,status) {
+  if (!records[date]) records[date]={};
+  records[date][m.id]=status;
+  save();
+  render();
+}
+function renderHome() {
+  const date=today();
+  const list=$('todayList');
+  list.innerHTML='';
+  if(!meds.length) {
+    list.innerHTML='<div class="empty">Ainda não há medicamentos cadastrados. ♡</div>';
+  }
+  let pending=0, done=0, missed=0;
+  meds.forEach(m=>{
+    const s=statusFor(m,date);
+    if(s==='done') done++;
+    else if(s==='missed') missed++;
+    else pending++;
+    const el=document.createElement('div');
+    el.className='item';
+    const name=document.createElement('strong');
+    name.textContent=m.name+' · '+m.time;
+    const detail=document.createElement('small');
+    detail.textContent=m.dose || 'Dose não informada';
+    el.append(name,detail);
+    const actions=document.createElement('div');
+    actions.className='actions';
+    if(s==='pending') {
+      const b=document.createElement('button');
+      b.textContent='Marcar como tomado';
+      b.onclick=()=>register(m,date,'done');
+      actions.append(b);
+      const miss=document.createElement('button');
+      miss.className='secondary';
+      miss.textContent='Marcar esquecido';
+      miss.onclick=()=>register(m,date,'missed');
+      actions.append(miss);
+    } else {
+      const status=document.createElement('small');
+      status.textContent=s==='done'?'✓ Tomado':'! Esquecido';
+      actions.append(status);
+      const undo=document.createElement('button');
+      undo.className='secondary';
+      undo.textContent='Corrigir registro';
+      undo.onclick=()=>register(m,date,'pending');
+      actions.append(undo);
+    }
+    el.append(actions);
+    list.append(el);
+  });
+  $('progress').textContent=meds.length
+    ? `${done} tomados · ${missed} esquecidos · ${pending} pendentes`
+    : 'Cadastre seu primeiro medicamento.';
+  let mood='happy';
+  if(missed) mood='sad';
+  else if(pending) mood='waiting';
+  const cat=$('cat');
+  cat.src='https://api.dicebear.com/9.x/fun-emoji/svg?seed='+mood+'-cat&backgroundColor=ffe4ef';
+  $('catTitle').textContent=mood==='happy'?'Você está cuidando de si!':mood==='sad'?'Vamos tentar novamente?':'Estou esperando você!';
+  $('catMessage').textContent=mood==='happy'?'Que bom! Todos os registros de hoje estão concluídos.':mood==='sad'?'Há registros marcados como esquecidos hoje.':'Ainda há lembretes para resolver.';
+}
+function renderMeds() {
+  const list=$('medList');
+  list.innerHTML='';
+  if(!meds.length) list.innerHTML='<div class="empty">Nenhum medicamento cadastrado.</div>';
+  meds.forEach(m=>{
+    const el=document.createElement('div');
+    el.className='item';
+    const title=document.createElement('strong');
+    title.textContent=m.name;
+    const detail=document.createElement('small');
+    detail.textContent=`${m.dose || 'Dose não informada'} · ${m.time}`;
+    const remove=document.createElement('button');
+    remove.className='secondary';
+    remove.textContent='Excluir';
+    remove.onclick=()=>{
+      if(confirm('Excluir este medicamento? O histórico anterior será preservado.')){
+        meds=meds.filter(x=>x.id!==m.id);
+        save();render();
+      }
+    };
+    el.append(title,detail,remove);
+    list.append(el);
+  });
+}
+function changeMonth(n) {
+  viewDate.setMonth(viewDate.getMonth()+n);
+  renderCalendar();
+}
+function renderCalendar() {
+  const y=viewDate.getFullYear(), mo=viewDate.getMonth();
+  $('monthName').textContent=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(viewDate);
+  const cal=$('calendar');
+  cal.innerHTML='';
+  ['D','S','T','Q','Q','S','S'].forEach(d=>{
+    const el=document.createElement('div');
+    el.textContent=d;el.style.textAlign='center';el.style.fontWeight='bold';
+    cal.append(el);
+  });
+  const first=new Date(y,mo,1).getDay();
+  const count=new Date(y,mo+1,0).getDate();
+  for(let i=0;i<first;i++) cal.append(document.createElement('div'));
+  for(let day=1;day<=count;day++){
+    const date=`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const el=document.createElement('div');
+    el.className='day';
+    if(date===today()) el.classList.add('today');
+    if(date===selectedDate) el.classList.add('selected');
+    const states=meds.map(m=>statusFor(m,date));
+    if(states.length && states.every(s=>s==='done')) el.classList.add('good');
+    else if(states.some(s=>s==='missed')) el.classList.add('bad');
+    else if(states.some(s=>s==='done')) el.classList.add('partial');
+    el.textContent=day;
+    el.onclick=()=>{selectedDate=date;renderCalendar();};
+    cal.append(el);
+  }
+  const details=$('dayDetails');
+  details.innerHTML='';
+  const title=document.createElement('h4');
+  title.textContent='Registros de '+new Date(y,mo,Number(selectedDate.slice(8))).toLocaleDateString('pt-BR');
+  details.append(title);
+  if(!meds.length) {
+    details.innerHTML+='<p class="empty">Cadastre medicamentos para acompanhar seu calendário.</p>';
+    return;
+  }
+  meds.forEach(m=>{
+    const el=document.createElement('div');
+    el.className='item';
+    const strong=document.createElement('strong');
+    strong.textContent=m.name+' · '+m.time;
+    const small=document.createElement('small');
+    const s=statusFor(m,selectedDate);
+    small.textContent=s==='done'?'Tomado':s==='missed'?'Esquecido':'Pendente ou sem registro';
+    el.append(strong,small);
+    details.append(el);
+  });
+}
+function exportData() {
+  const data={meds,records};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='backup-meu-remedinho.json';a.click();
+  URL.revokeObjectURL(url);
+}
+function render() {
+  renderHome();renderMeds();renderCalendar();
+}
+render();
+</script>
+</body>
+</html>
