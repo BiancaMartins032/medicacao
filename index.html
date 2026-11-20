@@ -491,11 +491,13 @@ function save() {
 }
 
 function setTheme(theme) {
+  alert('Botão acionado: ' + theme);
+
   if (theme !== 'pink' && theme !== 'black') return;
+
   localStorage.setItem('meus_horarios_theme', theme);
   applyTheme();
 }
-
 function applyTheme() {
   const theme = load('meus_horarios_theme', 'pink');
   document.body.dataset.theme = theme;
