@@ -4,406 +4,807 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#de78a5">
+<title>Meus Horários</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#DE78A5" id="themeColor">
+
 <style>
 :root {
-  --pink: #de78a5;
-  --light: #f9e5ee;
-  --bg: #fff9f7
-  --text: #51434b;
-  --green: #75ae91;
-  --red: #d87987;
+  --bg: #F7F7F9;
+  --card: #FFFFFF;
+  --text: #454550;
+  --muted: #858591;
+  --accent: #D96F9C;
+  --soft: #FBEAF1;
+  --border: #E9E7EC;
+  --nav: #FFFFFF;
+  --input: #FFFFFF;
+  --shadow: #0000000A;
+  --good: #E5F3EA;
+  --bad: #F9E7E9;
+  --partial: #F3EFF8;
 }
-* { box-sizing: border-box; } 
+
+body[data-theme="black"] {
+  --bg: #171719;
+  --card: #242427;
+  --text: #F1F1F3;
+  --muted: #AAAAAF;
+  --accent: #C5C5CC;
+  --soft: #343438;
+  --border: #414146;
+  --nav: #222225;
+  --input: #303034;
+  --shadow: #00000035;
+  --good: #294033;
+  --bad: #493235;
+  --partial: #3B3B42;
+}
+
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: Arial, sans-serif;
+  transition: background .2s, color .2s;
 }
+
 header {
-  padding: 22px 18px 12px;
   text-align: center;
+  padding: 23px 18px 12px;
 }
+
 header h1 {
-  color: var(--pink);
   margin: 0;
-  font-size: 25px;
+  font-size: 26px;
+  color: var(--accent);
 }
-header p { color: #99838d; font-size: 13px; }
-main { max-width: 600px; margin: auto; padding: 12px 16px 100px; }
+
+header p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+main {
+  max-width: 620px;
+  margin: auto;
+  padding: 12px 16px 105px;
+}
+
 .card {
-  background: white;
-  border-radius: 20px;
+  background: var(--card);
+  border-radius: 18px;
   padding: 18px;
   margin-bottom: 15px;
-  box-shadow: 0 4px 18px #e9cbd733;
+  box-shadow: 0 4px 18px var(--shadow);
 }
-.cat {
-  background: var(--light);
-  border-radius: 22px;
-  padding: 18px;
+
+.card h2, .card h3 { margin-top: 0; }
+
+.welcome {
+  background: var(--soft);
   text-align: center;
+  padding: 23px 18px;
 }
-.cat img { width: 145px; height: 135px; object-fit: contain; }
-.cat h2 { font-size: 19px; margin: 5px; }
-.cat p { font-size: 13px; margin: 5px; }
+
+.welcome h2 { margin: 5px 0; }
+
+.welcome p {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 0;
+}
+
+.welcome-icon {
+  font-size: 34px;
+  margin-bottom: 5px;
+}
+
 button {
   border: 0;
-  border-radius: 12px;
-  padding: 12px 16px;
-  background: var(--pink);
+  border-radius: 11px;
+  padding: 12px 15px;
+  background: var(--accent);
   color: white;
   font-weight: bold;
   cursor: pointer;
 }
-button.secondary { background: var(--light); color: var(--text); }
-button:disabled { opacity: .5; cursor: default; }
-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ead5df;
-  border-radius: 11px;
-  margin: 6px 0 13px;
-  background: white;
+
+button.secondary {
+  background: var(--soft);
   color: var(--text);
 }
-label { font-size: 13px; font-weight: bold; }
+
+button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin: 6px 0 14px;
+  background: var(--input);
+  color: var(--text);
+  font: inherit;
+}
+
+textarea {
+  min-height: 75px;
+  resize: vertical;
+}
+
+label {
+  font-size: 13px;
+  font-weight: bold;
+}
+
 nav {
   position: fixed;
+  z-index: 5;
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
   display: flex;
   justify-content: space-around;
-  padding: 12px 4px calc(12px + env(safe-area-inset-bottom));
-  box-shadow: 0 -3px 15px #e9cbd733;
+  background: var(--nav);
+  padding: 10px 3px calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -3px 15px var(--shadow);
 }
+
 nav button {
   background: transparent;
-  color: #917b86;
+  color: var(--muted);
   padding: 8px 5px;
   font-size: 12px;
 }
-nav button.active { color: var(--pink); background: var(--light); }
+
+nav button.active {
+  color: var(--accent);
+  background: var(--soft);
+}
+
 .page { display: none; }
 .page.active { display: block; }
+
 .item {
-  border: 1px solid #f0e2e8;
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
   padding: 13px;
   margin: 10px 0;
 }
-.item strong { display: block; margin-bottom: 5px; }
-.item small { color: #99838d; }
-.actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.actions button { font-size: 12px; padding: 9px 11px; }
+
+.item strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.item small {
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.status {
+  display: inline-block;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 20px;
+  background: var(--soft);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.status.done { background: var(--good); }
+.status.missed { background: var(--bad); }
+
+.actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.actions button {
+  font-size: 12px;
+  padding: 9px 11px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 20px 5px;
+  font-size: 13px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
 .month {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 14px;
 }
+
 .calendar {
   display: grid;
   grid-template-columns: repeat(7,1fr);
   gap: 5px;
 }
+
 .day {
-  background: #fff5f8;
-  border-radius: 10px;
+  background: var(--soft);
+  border-radius: 9px;
   text-align: center;
-  padding: 9px 2px;
-  min-height: 43px;
+  padding: 10px 2px;
+  min-height: 40px;
   font-size: 13px;
   cursor: pointer;
 }
-.day.good { background: #e3f3e9; }
-.day.bad { background: #fae3e7; }
-.day.partial { background: #fff0d8; }
-.day.today { outline: 2px solid var(--pink); }
-.day.selected { border: 2px solid var(--pink); }
-.legend { font-size: 11px; color: #917b86; margin-top: 12px; }
-.empty { text-align: center; color: #99838d; padding: 20px 5px; }
+
+.day.good { background: var(--good); }
+.day.bad { background: var(--bad); }
+.day.today { outline: 2px solid var(--accent); }
+.day.selected { border: 2px solid var(--accent); }
+
+.legend {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 12px;
+}
+
+.theme-options {
+  display: flex;
+  gap: 10px;
+}
+
+.theme-option {
+  flex: 1;
+  background: var(--card);
+  color: var(--text);
+  border: 2px solid var(--border);
+  padding: 15px 8px;
+}
+
+.theme-option.active {
+  border-color: var(--accent);
+  background: var(--soft);
+}
+
+.theme-preview {
+  width: 36px;
+  height: 36px;
+  display: block;
+  margin: 0 auto 9px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+.theme-preview.pink {
+  background: linear-gradient(135deg, #FFFFFF 50%, #D96F9C 50%);
+}
+
+.theme-preview.black {
+  background: linear-gradient(135deg, #171719 50%, #77777F 50%);
+}
+
+.note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
 </style>
 </head>
+
 <body>
 
 <header>
-  <h1></h1>
-  <p>Um carinho a mais com você mesma.</p>
+  <h1>Meus Horários</h1>
+  <p>Organize sua rotina, do seu jeito.</p>
 </header>
 
 <main>
+
 <section id="home" class="page active">
-  <div class="cat card">
-    <img id="cat" alt="Gatinho do Meu Remedinho"
-      src="https://api.dicebear.com/9.x/fun-emoji/svg?seed=happy-cat&backgroundColor=ffe4ef">
-    <h2 id="catTitle">Oi! Vamos cuidar de você?</h2>
-    <p id="catMessage">Estou aqui para acompanhar seu dia!</p>
+  <div class="card welcome">
+    <div class="welcome-icon">♡</div>
+    <h2>Seu dia, no seu ritmo.</h2>
+    <p>Um espaço para organizar seus compromissos e cuidar da sua rotina.</p>
   </div>
 
   <div class="card">
-    <h3>Seus lembretes de hoje</h3>
+    <div class="section-title">
+      <h3>Agenda de hoje</h3>
+      <span id="todayDate" class="note"></span>
+    </div>
     <div id="todayList"></div>
   </div>
+
   <div class="card">
-    <h3>Seu dia</h3>
-    <p id="progress">Nenhum medicamento cadastrado ainda.</p>
+    <h3>Resumo do dia</h3>
+    <div id="progress"></div>
   </div>
 </section>
 
 <section id="calendarPage" class="page">
   <div class="card">
-    <h3>Seu calendário ♡</h3>
+    <h3>Calendário</h3>
     <div class="month">
       <button class="secondary" onclick="changeMonth(-1)">‹</button>
       <strong id="monthName"></strong>
       <button class="secondary" onclick="changeMonth(1)">›</button>
     </div>
     <div class="calendar" id="calendar"></div>
-    <div class="legend">🟢 Tudo tomado · 🔴 Houve esquecimento · 🟡 Parcial ou pendente</div>
+    <div class="legend">Verde: concluído · Vermelho: não realizado</div>
     <div id="dayDetails"></div>
   </div>
 </section>
 
-<section id="medsPage" class="page">
+<section id="schedulePage" class="page">
   <div class="card">
-    <h3>Adicionar medicamento</h3>
-    <form id="medForm">
-      <label>Nome do medicamento</label>
-      <input id="medName" required placeholder="Ex.: Medicamento A">
-      <label>Dosagem ou quantidade</label>
-      <input id="dose" placeholder="Ex.: 1 comprimido">
-      <label>Horário</label>
-      <input id="time" type="time" required>
-      <button type="submit">Salvar medicamento</button>
+    <h3>Adicionar compromisso</h3>
+
+    <form id="itemForm">
+      <label for="itemName">O que você precisa fazer?</label>
+      <input id="itemName" required maxlength="100"
+        placeholder="Ex.: Consulta, caminhada, estudar...">
+
+      <label for="category">Categoria</label>
+      <select id="category">
+        <option>Saúde</option>
+        <option>Alimentação</option>
+        <option>Exercícios</option>
+        <option>Trabalho</option>
+        <option>Estudos</option>
+        <option>Pessoal</option>
+        <option>Medicamentos</option>
+        <option>Outros</option>
+      </select>
+
+      <label for="itemDate">Data</label>
+      <input id="itemDate" type="date" required>
+
+      <label for="itemTime">Horário</label>
+      <input id="itemTime" type="time" required>
+
+      <label for="repeat">Repetição</label>
+      <select id="repeat">
+        <option value="none">Não se repete</option>
+        <option value="daily">Todos os dias</option>
+        <option value="weekly">Toda semana</option>
+      </select>
+
+      <label for="itemDetails">Observações (opcional)</label>
+      <textarea id="itemDetails" maxlength="300"
+        placeholder="Informações adicionais..."></textarea>
+
+      <button type="submit">Salvar compromisso</button>
     </form>
   </div>
+
   <div class="card">
-    <h3>Meus medicamentos</h3>
-    <div id="medList"></div>
+    <h3>Meus compromissos</h3>
+    <div id="itemList"></div>
   </div>
 </section>
 
 <section id="settingsPage" class="page">
   <div class="card">
-    <h3>Configurações</h3>
-    <p>Seus dados ficam salvos neste navegador.</p>
-    <button class="secondary" onclick="exportData()">Fazer backup dos dados</button>
-    <p style="font-size:12px;color:#99838d">Guarde seu backup em local seguro. Não compartilhe informações médicas.</p>
+    <h3>Aparência</h3>
+    <p class="note">Escolha a identidade visual que prefere usar.</p>
+
+    <div class="theme-options">
+      <button type="button" class="theme-option" id="pinkTheme"
+        onclick="setTheme('pink')">
+        <span class="theme-preview pink"></span>
+        Rosa
+      </button>
+
+      <button type="button" class="theme-option" id="blackTheme"
+        onclick="setTheme('black')">
+        <span class="theme-preview black"></span>
+        Preto
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Seus dados</h3>
+    <p class="note">Seus compromissos ficam salvos neste navegador.</p>
+    <button onclick="exportData()">Fazer backup</button>
+    <p class="note">Guarde o arquivo de backup em um local seguro.</p>
+  </div>
+
+  <div class="card">
+    <h3>Sobre os lembretes</h3>
+    <p class="note">
+      O cadastro e a organização dos compromissos já estão disponíveis.
+      As notificações serão adicionadas em uma próxima etapa.
+    </p>
   </div>
 </section>
+
 </main>
 
 <nav>
   <button class="active" onclick="showPage('home',this)">⌂<br>Início</button>
   <button onclick="showPage('calendarPage',this)">▦<br>Calendário</button>
-  <button onclick="showPage('medsPage',this)">♡<br>Medicamentos</button>
+  <button onclick="showPage('schedulePage',this)">＋<br>Horários</button>
   <button onclick="showPage('settingsPage',this)">☰<br>Mais</button>
 </nav>
 
 <script>
 const $ = id => document.getElementById(id);
-const today = () => {
+
+function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-};
-const load = (key, fallback) => {
-  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
-  catch { return fallback; }
-};
-let meds = load('remedinho_meds', []);
+}
+
+function load(key, fallback) {
+  try {
+    return JSON.parse(localStorage.getItem(key)) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+let items = load('meus_horarios_items', null);
 let records = load('remedinho_records', {});
 let viewDate = new Date();
 let selectedDate = today();
 
+if (!items) {
+  const oldMeds = load('remedinho_meds', []);
+  items = oldMeds.map(m => ({
+    id: m.id,
+    name: m.name,
+    category: 'Medicamentos',
+    date: '',
+    time: m.time,
+    repeat: 'daily',
+    details: m.dose ? 'Dosagem: ' + m.dose : '',
+    legacy: true
+  }));
+  localStorage.setItem('meus_horarios_items', JSON.stringify(items));
+}
+
 function save() {
-  localStorage.setItem('remedinho_meds', JSON.stringify(meds));
+  localStorage.setItem('meus_horarios_items', JSON.stringify(items));
   localStorage.setItem('remedinho_records', JSON.stringify(records));
 }
+
+function setTheme(theme) {
+  if (theme !== 'pink' && theme !== 'black') return;
+  localStorage.setItem('meus_horarios_theme', theme);
+  applyTheme();
+}
+
+function applyTheme() {
+  const theme = load('meus_horarios_theme', 'pink');
+  document.body.dataset.theme = theme;
+
+  $('pinkTheme').classList.toggle('active', theme === 'pink');
+  $('blackTheme').classList.toggle('active', theme === 'black');
+
+  $('themeColor').content = theme === 'black' ? '#171719' : '#D96F9C';
+}
+
 function showPage(id, btn) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   $(id).classList.add('active');
-  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+
   render();
 }
-$('medForm').addEventListener('submit', e=>{
-  e.preventDefault();
-  meds.push({
-    id: crypto.randomUUID(),
-    name: $('medName').value.trim(),
-    dose: $('dose').value.trim(),
-    time: $('time').value
+
+function isScheduled(item, date) {
+  if (item.legacy || item.repeat === 'daily') return true;
+  if (!item.date) return false;
+  if (item.repeat === 'none') return item.date === date;
+  if (item.repeat === 'weekly') {
+    const start = new Date(item.date + 'T12:00:00');
+    const current = new Date(date + 'T12:00:00');
+    return current >= start && current.getDay() === start.getDay();
+  }
+  return false;
+}
+
+function statusFor(item, date) {
+  return records[date]?.[item.id] || 'pending';
+}
+
+function register(item, date, status) {
+  if (!records[date]) records[date] = {};
+  records[date][item.id] = status;
+  save();
+  render();
+}
+
+function createItemElement(item, date) {
+  const el = document.createElement('div');
+  el.className = 'item';
+
+  const top = document.createElement('div');
+  top.className = 'item-top';
+
+  const info = document.createElement('div');
+  const name = document.createElement('strong');
+  name.textContent = item.name;
+
+  const category = document.createElement('small');
+  category.textContent = item.category + ' · ' + item.time;
+
+  info.append(name, category);
+
+  const status = statusFor(item, date);
+  const badge = document.createElement('span');
+  badge.className = 'status' + (status === 'done' ? ' done' : status === 'missed' ? ' missed' : '');
+  badge.textContent = status === 'done' ? 'Concluído' : status === 'missed' ? 'Não realizado' : 'Pendente';
+
+  top.append(info, badge);
+  el.append(top);
+
+  if (item.details) {
+    const details = document.createElement('small');
+    details.textContent = item.details;
+    el.append(details);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+
+  if (status !== 'done') {
+    const done = document.createElement('button');
+    done.textContent = 'Concluir';
+    done.onclick = () => register(item, date, 'done');
+    actions.append(done);
+  }
+
+  if (status !== 'missed') {
+    const missed = document.createElement('button');
+    missed.className = 'secondary';
+    missed.textContent = 'Não realizado';
+    missed.onclick = () => register(item, date, 'missed');
+    actions.append(missed);
+  }
+
+  if (status !== 'pending') {
+    const undo = document.createElement('button');
+    undo.className = 'secondary';
+    undo.textContent = 'Desfazer';
+    undo.onclick = () => register(item, date, 'pending');
+    actions.append(undo);
+  }
+
+  el.append(actions);
+  return el;
+}
+
+function renderHome() {
+  $('todayDate').textContent = new Date().toLocaleDateString('pt-BR');
+
+  const list = $('todayList');
+  list.innerHTML = '';
+
+  const todayItems = items
+    .filter(item => isScheduled(item, today()))
+    .sort((a,b) => a.time.localeCompare(b.time));
+
+  if (!todayItems.length) {
+    list.innerHTML = '<div class="empty">Sua agenda está livre por enquanto.</div>';
+  }
+
+  let done = 0, missed = 0, pending = 0;
+
+  todayItems.forEach(item => {
+    const status = statusFor(item, today());
+    if (status === 'done') done++;
+    else if (status === 'missed') missed++;
+    else pending++;
+
+    list.append(createItemElement(item, today()));
   });
+
+  $('progress').textContent = todayItems.length
+    ? `${done} concluídos · ${pending} pendentes · ${missed} não realizados`
+    : 'Adicione seus compromissos para organizar seu dia.';
+}
+
+$('itemForm').addEventListener('submit', e => {
+  e.preventDefault();
+
+  const item = {
+    id: crypto.randomUUID(),
+    name: $('itemName').value.trim(),
+    category: $('category').value,
+    date: $('itemDate').value,
+    time: $('itemTime').value,
+    repeat: $('repeat').value,
+    details: $('itemDetails').value.trim()
+  };
+
+  items.push(item);
   save();
   e.target.reset();
+  $('itemDate').value = today();
   render();
+  alert('Compromisso salvo!');
 });
-function statusFor(m,date) {
-  return records[date]?.[m.id] || 'pending';
-}
-function register(m,date,status) {
-  if (!records[date]) records[date]={};
-  records[date][m.id]=status;
-  save();
-  render();
-}
-function renderHome() {
-  const date=today();
-  const list=$('todayList');
-  list.innerHTML='';
-  if(!meds.length) {
-    list.innerHTML='<div class="empty">Ainda não há medicamentos cadastrados. ♡</div>';
-  }
-  let pending=0, done=0, missed=0;
-  meds.forEach(m=>{
-    const s=statusFor(m,date);
-    if(s==='done') done++;
-    else if(s==='missed') missed++;
-    else pending++;
-    const el=document.createElement('div');
-    el.className='item';
-    const name=document.createElement('strong');
-    name.textContent=m.name+' · '+m.time;
-    const detail=document.createElement('small');
-    detail.textContent=m.dose || 'Dose não informada';
-    el.append(name,detail);
-    const actions=document.createElement('div');
-    actions.className='actions';
-    if(s==='pending') {
-      const b=document.createElement('button');
-      b.textContent='Marcar como tomado';
-      b.onclick=()=>register(m,date,'done');
-      actions.append(b);
-      const miss=document.createElement('button');
-      miss.className='secondary';
-      miss.textContent='Marcar esquecido';
-      miss.onclick=()=>register(m,date,'missed');
-      actions.append(miss);
-    } else {
-      const status=document.createElement('small');
-      status.textContent=s==='done'?'✓ Tomado':'! Esquecido';
-      actions.append(status);
-      const undo=document.createElement('button');
-      undo.className='secondary';
-      undo.textContent='Corrigir registro';
-      undo.onclick=()=>register(m,date,'pending');
-      actions.append(undo);
-    }
-    el.append(actions);
-    list.append(el);
-  });
-  $('progress').textContent=meds.length
-    ? `${done} tomados · ${missed} esquecidos · ${pending} pendentes`
-    : 'Cadastre seu primeiro medicamento.';
-  let mood='happy';
-  if(missed) mood='sad';
-  else if(pending) mood='waiting';
-  const cat=$('cat');
-  cat.src='https://api.dicebear.com/9.x/fun-emoji/svg?seed='+mood+'-cat&backgroundColor=ffe4ef';
-  $('catTitle').textContent=mood==='happy'?'Você está cuidando de si!':mood==='sad'?'Vamos tentar novamente?':'Estou esperando você!';
-  $('catMessage').textContent=mood==='happy'?'Que bom! Todos os registros de hoje estão concluídos.':mood==='sad'?'Há registros marcados como esquecidos hoje.':'Ainda há lembretes para resolver.';
-}
-function renderMeds() {
-  const list=$('medList');
-  list.innerHTML='';
-  if(!meds.length) list.innerHTML='<div class="empty">Nenhum medicamento cadastrado.</div>';
-  meds.forEach(m=>{
-    const el=document.createElement('div');
-    el.className='item';
-    const title=document.createElement('strong');
-    title.textContent=m.name;
-    const detail=document.createElement('small');
-    detail.textContent=`${m.dose || 'Dose não informada'} · ${m.time}`;
-    const remove=document.createElement('button');
-    remove.className='secondary';
-    remove.textContent='Excluir';
-    remove.onclick=()=>{
-      if(confirm('Excluir este medicamento? O histórico anterior será preservado.')){
-        meds=meds.filter(x=>x.id!==m.id);
-        save();render();
-      }
-    };
-    el.append(title,detail,remove);
-    list.append(el);
-  });
-}
-function changeMonth(n) {
-  viewDate.setMonth(viewDate.getMonth()+n);
-  renderCalendar();
-}
-function renderCalendar() {
-  const y=viewDate.getFullYear(), mo=viewDate.getMonth();
-  $('monthName').textContent=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(viewDate);
-  const cal=$('calendar');
-  cal.innerHTML='';
-  ['D','S','T','Q','Q','S','S'].forEach(d=>{
-    const el=document.createElement('div');
-    el.textContent=d;el.style.textAlign='center';el.style.fontWeight='bold';
-    cal.append(el);
-  });
-  const first=new Date(y,mo,1).getDay();
-  const count=new Date(y,mo+1,0).getDate();
-  for(let i=0;i<first;i++) cal.append(document.createElement('div'));
-  for(let day=1;day<=count;day++){
-    const date=`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const el=document.createElement('div');
-    el.className='day';
-    if(date===today()) el.classList.add('today');
-    if(date===selectedDate) el.classList.add('selected');
-    const states=meds.map(m=>statusFor(m,date));
-    if(states.length && states.every(s=>s==='done')) el.classList.add('good');
-    else if(states.some(s=>s==='missed')) el.classList.add('bad');
-    else if(states.some(s=>s==='done')) el.classList.add('partial');
-    el.textContent=day;
-    el.onclick=()=>{selectedDate=date;renderCalendar();};
-    cal.append(el);
-  }
-  const details=$('dayDetails');
-  details.innerHTML='';
-  const title=document.createElement('h4');
-  title.textContent='Registros de '+new Date(y,mo,Number(selectedDate.slice(8))).toLocaleDateString('pt-BR');
-  details.append(title);
-  if(!meds.length) {
-    details.innerHTML+='<p class="empty">Cadastre medicamentos para acompanhar seu calendário.</p>';
+
+function renderItems() {
+  const list = $('itemList');
+  list.innerHTML = '';
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">Você ainda não cadastrou compromissos.</div>';
     return;
   }
-  meds.forEach(m=>{
-    const el=document.createElement('div');
-    el.className='item';
-    const strong=document.createElement('strong');
-    strong.textContent=m.name+' · '+m.time;
-    const small=document.createElement('small');
-    const s=statusFor(m,selectedDate);
-    small.textContent=s==='done'?'Tomado':s==='missed'?'Esquecido':'Pendente ou sem registro';
-    el.append(strong,small);
-    details.append(el);
+
+  items.slice().sort((a,b) => a.time.localeCompare(b.time)).forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'item';
+
+    const title = document.createElement('strong');
+    title.textContent = item.name;
+
+    const detail = document.createElement('small');
+    detail.textContent = `${item.category} · ${item.time}`;
+
+    const date = document.createElement('small');
+    date.textContent = item.legacy ? 'Todos os dias' :
+      item.repeat === 'daily' ? 'Todos os dias' :
+      item.repeat === 'weekly' ? 'Toda semana' :
+      new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR');
+
+    const remove = document.createElement('button');
+    remove.className = 'secondary';
+    remove.textContent = 'Excluir';
+
+    remove.onclick = () => {
+      if (confirm('Excluir este compromisso? Os registros anteriores serão preservados.')) {
+        items = items.filter(x => x.id !== item.id);
+        save();
+        render();
+      }
+    };
+
+    el.append(title, detail, date);
+    if (item.details) {
+      const note = document.createElement('small');
+      note.textContent = item.details;
+      el.append(note);
+    }
+    el.append(remove);
+    list.append(el);
   });
 }
+
+function changeMonth(n) {
+  viewDate.setMonth(viewDate.getMonth() + n);
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const y = viewDate.getFullYear();
+  const mo = viewDate.getMonth();
+
+  $('monthName').textContent =
+    new Intl.DateTimeFormat('pt-BR', {month:'long', year:'numeric'}).format(viewDate);
+
+  const cal = $('calendar');
+  cal.innerHTML = '';
+
+  ['D','S','T','Q','Q','S','S'].forEach(d => {
+    const el = document.createElement('div');
+    el.textContent = d;
+    el.style.textAlign = 'center';
+    el.style.fontWeight = 'bold';
+    cal.append(el);
+  });
+
+  const first = new Date(y, mo, 1).getDay();
+  const count = new Date(y, mo + 1, 0).getDate();
+
+  for (let i = 0; i < first; i++) {
+    cal.append(document.createElement('div'));
+  }
+
+  for (let day = 1; day <= count; day++) {
+    const date = `${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const el = document.createElement('div');
+    el.className = 'day';
+
+    if (date === today()) el.classList.add('today');
+    if (date === selectedDate) el.classList.add('selected');
+
+    const scheduled = items.filter(item => isScheduled(item, date));
+    if (scheduled.length && scheduled.every(item => statusFor(item,date) === 'done')) {
+      el.classList.add('good');
+    } else if (scheduled.some(item => statusFor(item,date) === 'missed')) {
+      el.classList.add('bad');
+    }
+
+    el.textContent = day;
+    el.onclick = () => {
+      selectedDate = date;
+      renderCalendar();
+    };
+
+    cal.append(el);
+  }
+
+  const details = $('dayDetails');
+  details.innerHTML = '';
+
+  const title = document.createElement('h4');
+  title.textContent = 'Compromissos de ' +
+    new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR');
+  details.append(title);
+
+  const dayItems = items
+    .filter(item => isScheduled(item, selectedDate))
+    .sort((a,b) => a.time.localeCompare(b.time));
+
+  if (!dayItems.length) {
+    details.innerHTML += '<div class="empty">Nenhum compromisso cadastrado para este dia.</div>';
+    return;
+  }
+
+  dayItems.forEach(item => details.append(createItemElement(item, selectedDate)));
+}
+
 function exportData() {
-  const data={meds,records};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='backup-meu-remedinho.json';a.click();
+  const data = {
+    items,
+    records,
+    backupDate: new Date().toISOString()
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download = 'backup-meus-horarios.json';
+  a.click();
+
   URL.revokeObjectURL(url);
 }
+
 function render() {
-  renderHome();renderMeds();renderCalendar();
+  renderHome();
+  renderItems();
+  renderCalendar();
 }
+
+$('itemDate').value = today();
+applyTheme();
 render();
 </script>
-  
+
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./service-worker.js")
-      .then(() => console.log("Aplicativo preparado para instalação"))
       .catch(error => console.error("Erro:", error));
   });
 }
