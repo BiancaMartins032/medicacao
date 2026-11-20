@@ -1,0 +1,9 @@
+{
+  "name": "Medicação",
+  "short_name": "Medicação",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff9f7",
+  "theme_color": "#de78a5"
+}
