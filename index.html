@@ -398,5 +398,16 @@ function render() {
 }
 render();
 </script>
+  
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("Aplicativo preparado para instalação"))
+      .catch(error => console.error("Erro:", error));
+  });
+}
+</script>
+
 </body>
 </html>
