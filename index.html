@@ -491,20 +491,11 @@ function save() {
 }
 
 function setTheme(theme) {
-  try {
-    localStorage.setItem('meus_horarios_theme', theme);
+  if (theme !== 'pink' && theme !== 'black') return;
 
-    alert('Preferência salva: ' +
-      localStorage.getItem('meus_horarios_theme'));
+  localStorage.setItem('meus_horarios_theme', JSON.stringify(theme));
 
-    applyTheme();
-
-    alert('Tema aplicado: ' +
-      document.body.dataset.theme);
-
-  } catch (error) {
-    alert('Erro encontrado: ' + error.message);
-  }
+  applyTheme();
 }
 function applyTheme() {
   const theme = load('meus_horarios_theme', 'pink');
