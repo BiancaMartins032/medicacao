@@ -313,14 +313,52 @@ nav button.active {
 
 body[data-theme="black"] {
 }
-  #catReaction {
-  display: block;
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
-  margin: 12px auto;
-  border-radius: 16px;
+  
+.cat-message-card {
+  padding: 12px 16px;
 }
+
+.cat-message-layout {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 130px;
+}
+
+#catReaction {
+  display: block;
+  width: 125px;
+  height: 125px;
+  flex: 0 0 125px;
+  object-fit: contain;
+  margin: 0;
+}
+
+.cat-message {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 600;
+  text-align: left;
+}
+
+@media (max-width: 380px) {
+  .cat-message-layout {
+    gap: 10px;
+  }
+
+  #catReaction {
+    width: 105px;
+    height: 105px;
+    flex-basis: 105px;
+  }
+
+  .cat-message {
+    font-size: 14px;
+  }
+}
+
 </style>
 </head>
 
@@ -348,14 +386,18 @@ body[data-theme="black"] {
     <div id="todayList"></div>
   </div>
 
-    <div class="card welcome">
+    
+<div class="card cat-message-card">
+  <div class="cat-message-layout">
     <img
       id="catReaction"
-      src="./gatinho-esperando-rosa.jpg"
+      src="./gatinho-esperando-preto-removebg-preview.png"
       alt="Gatinho esperando"
-      style="width:100%; max-width:340px; display:block; margin:auto; border-radius:14px;"
     >
+    <p id="catMessage" class="cat-message"></p>
   </div>
+</div>
+
 
   <div class="card">
     <h3>Resumo do dia</h3>
@@ -641,12 +683,14 @@ function createItemElement(item, date) {
   return el;
 }
 
+
 function renderHome() {
   $('todayDate').textContent = new Date().toLocaleDateString('pt-BR');
 
-    const cat = $('catReaction');
+  const cat = $('catReaction');
+  const catMessage = $('catMessage');
 
-  if (cat) {
+  if (cat && catMessage) {
     const todayItemsForCat = items.filter(item => isScheduled(item, today()));
 
     const hasMissed = todayItemsForCat.some(
@@ -658,14 +702,78 @@ function renderHome() {
 
     const reaction = hasMissed ? 'tristinho' : allDone ? 'feliz' : 'esperando';
 
-    const catImages = {
-  feliz: './gatinho-feliz-preto-removebg-preview.png',
-  tristinho: './gatinho-tristinho-preto-removebg-preview.png',
-  esperando: './gatinho-esperando-preto-removebg-preview.png'
-};
+    const theme = document.body.dataset.theme === 'black' ? 'black' : 'pink';
 
-cat.src = catImages[reaction];
+    const catImages = {
+      feliz: './gatinho-feliz-preto-removebg-preview.png',
+      tristinho: './gatinho-tristinho-preto-removebg-preview.png',
+      esperando: './gatinho-esperando-preto-removebg-preview.png'
+    };
+
+    const messages = {
+      pink: {
+        feliz: [
+          'Miau! Que gatinha dedicada! Arrasou!',
+          'Ronrom! Você merece muitos cafunés!',
+          'Olha só essa gatinha maravilhosa!',
+          'Quatro patinhas e muita determinação!',
+          'Prrr! Estou orgulhoso de você!'
+        ],
+        esperando: [
+          'Vamos lá, gatinha! Mexa essas patinhas!',
+          'Psiu! Ainda temos algumas missões!',
+          'Acorda, gatinha! Temos conquistas esperando!',
+          'Miau! Não vale se esconder debaixo da coberta!',
+          'Você consegue, pequena felina!'
+        ],
+        tristinho: [
+          'Ô, gatinha! Não fique de orelhas baixas!',
+          'Calma, minha pequena! Ainda dá para recomeçar!',
+          'Nem todo salto sai perfeito. Tente novamente!',
+          'Nada de tristeza, gatinha! Você é capaz!'
+        ]
+      },
+      black: {
+        feliz: [
+          'Miau! Esse gatinho é uma máquina!',
+          'Ronrom! Missão cumprida, chefe!',
+          'Que felino disciplinado! Respeitável!',
+          'Patinhas ligeiras, conquistas gigantes!',
+          'Hoje você merece um belo cochilo!'
+        ],
+        esperando: [
+          'Bora, gatinho! Tire essas patas do descanso!',
+          'Ei, bichano! Temos missões pela frente!',
+          'Menos cochilo, mais conquistas!',
+          'Vamos mostrar do que esse felino é capaz!',
+          'Miau! Não deixe a preguiça vencer!'
+        ],
+        tristinho: [
+          'Cabeça erguida, gatinho! Ainda há esperança!',
+          'Até os felinos mais ágeis tropeçam!',
+          'Nada de se esconder, bichano! Vamos recomeçar!',
+          'Respire fundo e tente mais uma vez!'
+        ]
+      }
+    };
+
+    const availableMessages = messages[theme][reaction];
+    let selectedMessage;
+
+    do {
+      selectedMessage = availableMessages[
+        Math.floor(Math.random() * availableMessages.length)
+      ];
+    } while (
+      availableMessages.length > 1 &&
+      selectedMessage === cat.dataset.lastMessage
+    );
+
+    cat.dataset.lastMessage = selectedMessage;
+
+    cat.src = catImages[reaction];
     cat.alt = `Gatinho ${reaction}`;
+    catMessage.textContent = selectedMessage;
   }
 
   const list = $('todayList');
@@ -694,6 +802,7 @@ cat.src = catImages[reaction];
     ? `${done} concluídos · ${pending} pendentes · ${missed} não realizados`
     : 'Adicione seus compromissos para organizar seu dia.';
 }
+
 
 $('itemForm').addEventListener('submit', e => {
   e.preventDefault();
