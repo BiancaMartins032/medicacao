@@ -948,6 +948,36 @@ async function signInAccount() {
   message.textContent = 'Login realizado com sucesso!';
 }
 
+  
+async function updateAccountStatus() {
+  const message = $('accountMessage');
+  const emailInput = $('accountEmail');
+  const passwordInput = $('accountPassword');
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if (error || !data.user) {
+    message.textContent = 'Você ainda não está conectado.';
+    return;
+  }
+
+  emailInput.value = data.user.email || '';
+  passwordInput.value = '';
+
+  message.textContent = 'Conectado como ' + data.user.email;
+}
+
+async function signOutAccount() {
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    $('accountMessage').textContent = 'Erro ao sair: ' + error.message;
+    return;
+  }
+
+  $('accountPassword').value = '';
+  $('accountMessage').textContent = 'Você saiu da sua conta.';
+}
+
 function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
