@@ -1025,6 +1025,32 @@ async function createCoupleSpace() {
 
   message.textContent = 'Espaço do casal criado com sucesso!';
 }
+  
+async function sendCoupleInvite() {
+  const email = $('partnerEmail').value.trim().toLowerCase();
+  const message = $('inviteMessage');
+
+  if (!email) {
+    message.textContent = 'Informe o e-mail do seu parceiro.';
+    return;
+  }
+
+  message.textContent = 'Enviando convite...';
+
+  const { error } = await supabaseClient.rpc(
+    'create_couple_invite',
+    { p_email: email }
+  );
+
+  if (error) {
+    message.textContent = 'Não foi possível enviar: ' + error.message;
+    return;
+  }
+
+  message.textContent =
+    'Convite registrado! Seu parceiro precisará aceitar para entrar no espaço.';
+}
+
 
 
 function today() {
