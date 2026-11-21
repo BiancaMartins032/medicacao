@@ -2124,6 +2124,83 @@ async function updateSharedTaskStatus(task, status) {
   await loadSharedTasks();
 }
 
+  
+async function loadIndividualDataFromSupabase() {
+  try {
+    const { data: auth, error: authError } =
+      await supabaseClient.auth.getUser();
+
+    if (authError || !auth.user) {
+      console.log('Sem conta conectada. Dados locais preservados.');
+      return;
+    }
+
+    const userId = auth.user.id;
+
+    const { data: cloudTasks, error: tasksError } =
+      await supabaseClient
+        .from('individual_tasks')
+        .select('*')
+        .eq('user_id', userId);
+
+    if (tasksError) throw tasksError;
+
+    const { data: cloudRecords, error: recordsError } =
+      await supabaseClient
+        .from('individual_task_records')
+        .select('*')
+        .eq('user_id', userId);
+
+    if (recordsError) throw recordsError;
+
+    const loadedItems = (cloudTasks || []).map(task => ({
+      id: task.id,
+      name: task.name,
+      category: task.category || '',
+      date: task.start_date || '',
+      time: task.task_time ? task.task_time.slice(0, 5) : '',
+      repeat: task.repeat_rule || 'weekdays',
+      weekdays: task.weekdays || [],
+      details: task.details || '',
+      legacy: Boolean(task.legacy)
+    }));
+
+    const loadedRecords = {};
+
+    (cloudRecords || []).forEach(record => {
+      if (!loadedRecords[record.record_date]) {
+        loadedRecords[record.record_date] = {};
+      }
+
+      loadedRecords[record.record_date][record.task_id] =
+        record.status;
+    });
+
+    if (records.backupDate) {
+      loadedRecords.backupDate = records.backupDate;
+    }
+
+    items = loadedItems;
+    records = loadedRecords;
+
+    save();
+
+    console.log('Dados individuais carregados do Supabase:', {
+      tarefas: items.length,
+      registros: cloudRecords.length
+    });
+
+    render();
+
+  } catch (error) {
+    console.error('Erro ao carregar dados individuais:', error);
+    alert(
+      'Não foi possível carregar suas tarefas da nuvem. ' +
+      'Seus dados locais foram preservados.'
+    );
+  }
+}
+
 function renderHome() {
   const date = today();
   loadSharedTasks();
