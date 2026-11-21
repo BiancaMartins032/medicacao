@@ -460,6 +460,90 @@ body[data-theme="black"] .dot.pending {
 body[data-theme="black"] .dot.missed {
   background: #C4C4C4;
 }
+  .monthly-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.monthly-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.monthly-center {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.monthly-center strong {
+  font-size: 27px;
+}
+
+.monthly-center small {
+  font-size: 12px;
+}
+
+.monthly-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-width: 145px;
+}
+
+.monthly-legend > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.monthly-legend strong {
+  margin-left: auto;
+}
+
+.monthly-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.monthly-dot.done {
+  background: #D98AC7;
+}
+
+.monthly-dot.pending {
+  background: #B78AA8;
+}
+
+.monthly-dot.missed {
+  background: #E9C8D8;
+}
+
+body[data-theme="black"] .monthly-dot.done {
+  background: #555555;
+}
+
+body[data-theme="black"] .monthly-dot.pending {
+  background: #888888;
+}
+
+body[data-theme="black"] .monthly-dot.missed {
+  background: #C4C4C4;
+}
 </style>
 </head>
 
@@ -535,8 +619,44 @@ body[data-theme="black"] .dot.missed {
       <button class="secondary" onclick="changeMonth(1)">›</button>
     </div>
     <div class="calendar" id="calendar"></div>
-    <div class="legend">Verde: concluído · Vermelho: não realizado</div>
+        <div class="legend">Verde: concluído · Vermelho: não realizado</div>
     <div id="dayDetails"></div>
+  </div>
+
+  <div class="card monthly-summary">
+    <h3>Resumo do mês</h3>
+
+    <label for="monthlyMonth">Consultar mês</label>
+    <input type="month" id="monthlyMonth">
+
+    <div class="monthly-chart">
+      <div class="monthly-circle" id="monthlyChart">
+        <div class="monthly-center">
+          <strong id="monthlyPercentage">0%</strong>
+          <small>concluído</small>
+        </div>
+      </div>
+
+      <div class="monthly-legend">
+        <div>
+          <span class="monthly-dot done"></span>
+          Concluídos
+          <strong id="monthlyDone">0</strong>
+        </div>
+
+        <div>
+          <span class="monthly-dot pending"></span>
+          Pendentes
+          <strong id="monthlyPending">0</strong>
+        </div>
+
+        <div>
+          <span class="monthly-dot missed"></span>
+          Não realizados
+          <strong id="monthlyMissed">0</strong>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1181,7 +1301,74 @@ function renderItems() {
   });
 }
 
+function renderMonthlySummary() {
+  const monthValue = $('monthlyMonth').value;
+  if (!monthValue) return;
 
+  const [year, month] = monthValue.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  let done = 0;
+  let pending = 0;
+  let missed = 0;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    items.forEach(item => {
+      if (!isScheduled(item, date)) return;
+
+      const status = statusFor(item, date);
+
+      if (status === 'done') done++;
+      else if (status === 'missed') missed++;
+      else pending++;
+    });
+  }
+
+  const total = done + pending + missed;
+  const percentage = total ? Math.round((done / total) * 100) : 0;
+
+  $('monthlyPercentage').textContent = `${percentage}%`;
+  $('monthlyDone').textContent = done;
+  $('monthlyPending').textContent = pending;
+  $('monthlyMissed').textContent = missed;
+
+  const doneAngle = total ? (done / total) * 360 : 0;
+  const pendingAngle = total ? (pending / total) * 360 : 0;
+
+  const black = document.body.dataset.theme === 'black';
+
+  const colors = black
+    ? {
+        done: '#555555',
+        pending: '#888888',
+        missed: '#C4C4C4',
+        empty: '#383838',
+        center: '#242424',
+        text: '#F2F2F2'
+      }
+    : {
+        done: '#D98AC7',
+        pending: '#B78AA8',
+        missed: '#E9C8D8',
+        empty: '#F3E8EF',
+        center: '#FFFFFF',
+        text: '#343746'
+      };
+
+  $('monthlyChart').style.background = total
+    ? `conic-gradient(
+        ${colors.done} 0deg ${doneAngle}deg,
+        ${colors.pending} ${doneAngle}deg ${doneAngle + pendingAngle}deg,
+        ${colors.missed} ${doneAngle + pendingAngle}deg 360deg
+      )`
+    : colors.empty;
+
+  const center = document.querySelector('.monthly-center');
+  center.style.background = colors.center;
+  center.style.color = colors.text;
+}
 function changeMonth(n) {
   viewDate.setMonth(viewDate.getMonth() + n);
   renderCalendar();
@@ -1190,6 +1377,18 @@ function changeMonth(n) {
 function renderCalendar() {
   const y = viewDate.getFullYear();
   const mo = viewDate.getMonth();
+    const monthlyMonth = $('monthlyMonth');
+
+  monthlyMonth.value =
+    `${y}-${String(mo + 1).padStart(2, '0')}`;
+
+  monthlyMonth.onchange = () => {
+    const [year, month] = monthlyMonth.value.split('-').map(Number);
+    viewDate = new Date(year, month - 1, 1);
+    renderCalendar();
+  };
+
+  renderMonthlySummary();
 
   $('monthName').textContent =
     new Intl.DateTimeFormat('pt-BR', {month:'long', year:'numeric'}).format(viewDate);
