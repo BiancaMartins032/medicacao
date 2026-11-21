@@ -900,6 +900,60 @@ body[data-theme="black"] .monthly-dot.missed {
     </div>
 
     <form id="itemForm">
+      
+<label for="taskType">Tipo de tarefa</label>
+<select id="taskType">
+  <option value="individual">Tarefa individual</option>
+  <option value="shared">Tarefa compartilhada</option>
+</select>
+      
+<div id="sharedFields" style="display:none;">
+
+  <div class="card">
+    <h3>O que você precisa fazer?</h3>
+
+    <label for="myResponsibility">Sua responsabilidade</label>
+    <input id="myResponsibility" maxlength="100"
+      placeholder="Ex.: Ir ao aniversário">
+
+    <label for="myResponsibilityDetails">Seus detalhes</label>
+    <textarea id="myResponsibilityDetails" maxlength="300"
+      placeholder="Ex.: Levar o presente e chegar às 19h"></textarea>
+
+    <label for="myResponsibilityPoints">Pontos</label>
+    <select id="myResponsibilityPoints">
+      <option value="5">Muito leve — 5 pontos</option>
+      <option value="10">Leve — 10 pontos</option>
+      <option value="20" selected>Moderado — 20 pontos</option>
+      <option value="30">Alto — 30 pontos</option>
+      <option value="50">Muito alto — 50 pontos</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h3>O que seu parceiro precisa fazer?</h3>
+
+    <label for="partnerResponsibility">Responsabilidade do parceiro</label>
+    <input id="partnerResponsibility" maxlength="100"
+      placeholder="Ex.: Lavar a roupa dele">
+
+    <label for="partnerResponsibilityDetails">Detalhes do parceiro</label>
+    <textarea id="partnerResponsibilityDetails" maxlength="300"
+      placeholder="Informações que somente ele deverá ver"></textarea>
+
+    <label for="partnerResponsibilityPoints">Pontos</label>
+    <select id="partnerResponsibilityPoints">
+      <option value="5">Muito leve — 5 pontos</option>
+      <option value="10">Leve — 10 pontos</option>
+      <option value="20" selected>Moderado — 20 pontos</option>
+      <option value="30">Alto — 30 pontos</option>
+      <option value="50">Muito alto — 50 pontos</option>
+    </select>
+  </div>
+
+</div>
+
+
       <label for="itemName">O que você precisa fazer?</label>
       <input id="itemName" required maxlength="100"
         placeholder="Ex.: Consulta, caminhada, estudar...">
@@ -1540,6 +1594,27 @@ function applyTheme() {
 }
 
 
+function updateTaskType() {
+  const type = $('taskType').value;
+  const sharedFields = $('sharedFields');
+
+  sharedFields.style.display = type === 'shared' ? 'block' : 'none';
+}
+
+$('taskType').addEventListener('change', updateTaskType);
+
+  
+function updateTaskType() {
+  const type = $('taskType').value;
+  const sharedFields = $('sharedFields');
+
+  sharedFields.style.display = type === 'shared' ? 'block' : 'none';
+}
+
+$('taskType').addEventListener('change', updateTaskType);
+
+  
+
 function openTaskModal() {
   const modal = document.getElementById('taskModal');
 
@@ -1553,12 +1628,15 @@ function openTaskModal() {
     $('taskModalTitle').textContent = 'Adicionar tarefa';
   }
 
+  updateTaskType();
+
   modal.style.display = 'flex';
 
   if (typeof renderItems === 'function') {
     renderItems();
   }
 }
+
 
 
 function closeTaskModal() {
