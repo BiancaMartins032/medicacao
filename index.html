@@ -372,14 +372,20 @@ body[data-theme="black"] {
 
 <main>
 
+
 <section id="home" class="page active">
 
   <div class="card">
     <div class="section-title">
-      <h3>Agenda de hoje</h3>
+      <h3>O que me propus a fazer</h3>
       <span id="todayDate" class="note"></span>
     </div>
     <div id="todayList"></div>
+  </div>
+
+  <div class="card">
+    <h3>O que consegui concluir</h3>
+    <div id="completedList"></div>
   </div>
 
   <div class="card cat-message-card">
@@ -394,8 +400,9 @@ body[data-theme="black"] {
   </div>
 
   <div class="card">
-    <h3>Resumo do dia</h3>
+    <h3>Resumo do meu dia</h3>
     <div id="progress"></div>
+    <div id="dailyDetails"></div>
   </div>
 
 </section>
@@ -452,7 +459,16 @@ body[data-theme="black"] {
       <textarea id="itemDetails" maxlength="300"
         placeholder="Informações adicionais..."></textarea>
 
-      <button type="submit">Salvar compromisso</button>
+      <button type="submit" id="saveItemButton">Salvar compromisso</button>
+<button
+  type="button"
+  class="secondary"
+  id="cancelEditButton"
+  onclick="cancelEdit()"
+  style="display:none; margin-left:6px;"
+>
+  Cancelar edição
+</button>
     </form>
   </div>
 
@@ -527,6 +543,7 @@ let items = load('meus_horarios_items', null);
 let records = load('remedinho_records', {});
 let viewDate = new Date();
 let selectedDate = today();
+let editingItemId = null;
 
 if (!items) {
   const oldMeds = load('remedinho_meds', []);
@@ -679,97 +696,183 @@ function createItemElement(item, date) {
 }
 
 
+
 function renderHome() {
+  const date = today();
+
   $('todayDate').textContent = new Date().toLocaleDateString('pt-BR');
 
+  const todayItems = items
+    .filter(item => isScheduled(item, date))
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  const plannedList = $('todayList');
+  const completedList = $('completedList');
+  const dailyDetails = $('dailyDetails');
+
+  plannedList.innerHTML = '';
+  completedList.innerHTML = '';
+  dailyDetails.innerHTML = '';
+
+  let done = 0;
+  let missed = 0;
+  let pending = 0;
+
+  todayItems.forEach(item => {
+    const status = statusFor(item, date);
+
+    if (status === 'done') done++;
+    else if (status === 'missed') missed++;
+    else pending++;
+
+    plannedList.append(createItemElement(item, date));
+
+    if (status === 'done') {
+      const completed = document.createElement('div');
+      completed.className = 'item';
+
+      const name = document.createElement('strong');
+      name.textContent = item.name;
+
+      const detail = document.createElement('small');
+      detail.textContent = `${item.category} · ${item.time}`;
+
+      completed.append(name, detail);
+
+      if (item.details) {
+        const note = document.createElement('small');
+        note.textContent = item.details;
+        completed.append(note);
+      }
+
+      completedList.append(completed);
+    }
+
+    const summaryItem = document.createElement('div');
+    summaryItem.className = 'item';
+
+    const name = document.createElement('strong');
+    name.textContent = item.name;
+
+    const detail = document.createElement('small');
+    detail.textContent = `${item.time} · ${item.category}`;
+
+    const statusText = document.createElement('small');
+    statusText.textContent =
+      status === 'done' ? 'Concluído' :
+      status === 'missed' ? 'Não realizado' :
+      'Pendente';
+
+    summaryItem.append(name, detail, statusText);
+
+    if (item.details) {
+      const note = document.createElement('small');
+      note.textContent = item.details;
+      summaryItem.append(note);
+    }
+
+    dailyDetails.append(summaryItem);
+  });
+
+  if (!todayItems.length) {
+    plannedList.innerHTML =
+      '<div class="empty">Você ainda não se propôs a fazer nada hoje.</div>';
+  }
+
+  if (!done) {
+    completedList.innerHTML =
+      '<div class="empty">Suas conquistas de hoje ainda estão esperando por você!</div>';
+  }
+
+  $('progress').textContent = todayItems.length
+    ? `${todayItems.length} planejados · ${done} concluídos · ${pending} pendentes · ${missed} não realizados`
+    : 'Adicione compromissos para organizar seu dia.';
+
+  if (!todayItems.length) {
+    dailyDetails.innerHTML =
+      '<div class="empty">Seu resumo aparecerá aqui quando houver compromissos.</div>';
+  }
+
+  // Reação dos gatinhos
   const cat = $('catReaction');
   const catMessage = $('catMessage');
 
-  if (cat && catMessage) {
-    const todayItemsForCat = items.filter(item => isScheduled(item, today()));
+  const hasMissed = missed > 0;
+  const allDone = todayItems.length > 0 && done === todayItems.length;
 
-    const hasMissed = todayItemsForCat.some(
-      item => statusFor(item, today()) === 'missed'
-    );
+  const reaction = hasMissed ? 'tristinho' : allDone ? 'feliz' : 'esperando';
+  const theme = document.body.dataset.theme === 'black' ? 'black' : 'pink';
 
-    const allDone = todayItemsForCat.length > 0 &&
-      todayItemsForCat.every(item => statusFor(item, today()) === 'done');
+  const catImages = {
+    feliz: './gatinho-feliz-preto-removebg-preview.png',
+    tristinho: './gatinho-tristinho-preto-removebg-preview.png',
+    esperando: './gatinho-esperando-preto-removebg-preview.png'
+  };
 
-    const reaction = hasMissed ? 'tristinho' : allDone ? 'feliz' : 'esperando';
+  const messages = {
+    pink: {
+      feliz: [
+        'Miau! Que gatinha dedicada! Arrasou!',
+        'Ronrom! Você merece muitos cafunés!',
+        'Olha só essa gatinha maravilhosa!',
+        'Quatro patinhas e muita determinação!',
+        'Prrr! Estou orgulhoso de você!'
+      ],
+      esperando: [
+        'Vamos lá, gatinha! Mexa essas patinhas!',
+        'Psiu! Ainda temos algumas missões!',
+        'Acorda, gatinha! Temos conquistas esperando!',
+        'Miau! Não vale se esconder debaixo da coberta!',
+        'Você consegue, pequena felina!'
+      ],
+      tristinho: [
+        'Ô, gatinha! Não fique de orelhas baixas!',
+        'Calma, minha pequena! Ainda dá para recomeçar!',
+        'Nem todo salto sai perfeito. Tente novamente!',
+        'Nada de tristeza, gatinha! Você é capaz!'
+      ]
+    },
+    black: {
+      feliz: [
+        'Miau! Esse gatinho é uma máquina!',
+        'Ronrom! Missão cumprida, chefe!',
+        'Que felino disciplinado! Respeitável!',
+        'Patinhas ligeiras, conquistas gigantes!',
+        'Hoje você merece um belo cochilo!'
+      ],
+      esperando: [
+        'Bora, gatinho! Tire essas patas do descanso!',
+        'Ei, bichano! Temos missões pela frente!',
+        'Menos cochilo, mais conquistas!',
+        'Vamos mostrar do que esse felino é capaz!',
+        'Miau! Não deixe a preguiça vencer!'
+      ],
+      tristinho: [
+        'Cabeça erguida, gatinho! Ainda há esperança!',
+        'Até os felinos mais ágeis tropeçam!',
+        'Nada de se esconder, bichano! Vamos recomeçar!',
+        'Respire fundo e tente mais uma vez!'
+      ]
+    }
+  };
 
-    const theme = document.body.dataset.theme === 'black' ? 'black' : 'pink';
+  const availableMessages = messages[theme][reaction];
+  let selectedMessage;
 
-    const catImages = {
-      feliz: './gatinho-feliz-preto-removebg-preview.png',
-      tristinho: './gatinho-tristinho-preto-removebg-preview.png',
-      esperando: './gatinho-esperando-preto-removebg-preview.png'
-    };
+  do {
+    selectedMessage =
+      availableMessages[Math.floor(Math.random() * availableMessages.length)];
+  } while (
+    availableMessages.length > 1 &&
+    selectedMessage === cat.dataset.lastMessage
+  );
 
-    const messages = {
-      pink: {
-        feliz: [
-          'Miau! Que gatinha dedicada! Arrasou!',
-          'Ronrom! Você merece muitos cafunés!',
-          'Olha só essa gatinha maravilhosa!',
-          'Quatro patinhas e muita determinação!',
-          'Prrr! Estou orgulhoso de você!'
-        ],
-        esperando: [
-          'Vamos lá, gatinha! Mexa essas patinhas!',
-          'Psiu! Ainda temos algumas missões!',
-          'Acorda, gatinha! Temos conquistas esperando!',
-          'Miau! Não vale se esconder debaixo da coberta!',
-          'Você consegue, pequena felina!'
-        ],
-        tristinho: [
-          'Ô, gatinha! Não fique de orelhas baixas!',
-          'Calma, minha pequena! Ainda dá para recomeçar!',
-          'Nem todo salto sai perfeito. Tente novamente!',
-          'Nada de tristeza, gatinha! Você é capaz!'
-        ]
-      },
-      black: {
-        feliz: [
-          'Miau! Esse gatinho é uma máquina!',
-          'Ronrom! Missão cumprida, chefe!',
-          'Que felino disciplinado! Respeitável!',
-          'Patinhas ligeiras, conquistas gigantes!',
-          'Hoje você merece um belo cochilo!'
-        ],
-        esperando: [
-          'Bora, gatinho! Tire essas patas do descanso!',
-          'Ei, bichano! Temos missões pela frente!',
-          'Menos cochilo, mais conquistas!',
-          'Vamos mostrar do que esse felino é capaz!',
-          'Miau! Não deixe a preguiça vencer!'
-        ],
-        tristinho: [
-          'Cabeça erguida, gatinho! Ainda há esperança!',
-          'Até os felinos mais ágeis tropeçam!',
-          'Nada de se esconder, bichano! Vamos recomeçar!',
-          'Respire fundo e tente mais uma vez!'
-        ]
-      }
-    };
+  cat.dataset.lastMessage = selectedMessage;
+  cat.src = catImages[reaction];
+  cat.alt = `Gatinho ${reaction}`;
+  catMessage.textContent = selectedMessage;
+}
 
-    const availableMessages = messages[theme][reaction];
-    let selectedMessage;
-
-    do {
-      selectedMessage = availableMessages[
-        Math.floor(Math.random() * availableMessages.length)
-      ];
-    } while (
-      availableMessages.length > 1 &&
-      selectedMessage === cat.dataset.lastMessage
-    );
-
-    cat.dataset.lastMessage = selectedMessage;
-
-    cat.src = catImages[reaction];
-    cat.alt = `Gatinho ${reaction}`;
-    catMessage.textContent = selectedMessage;
-  }
 
   const list = $('todayList');
   list.innerHTML = '';
@@ -799,11 +902,11 @@ function renderHome() {
 }
 
 
+
 $('itemForm').addEventListener('submit', e => {
   e.preventDefault();
 
-  const item = {
-    id: crypto.randomUUID(),
+  const itemData = {
     name: $('itemName').value.trim(),
     category: $('category').value,
     date: $('itemDate').value,
@@ -812,13 +915,64 @@ $('itemForm').addEventListener('submit', e => {
     details: $('itemDetails').value.trim()
   };
 
-  items.push(item);
+  if (editingItemId) {
+    const item = items.find(x => x.id === editingItemId);
+
+    if (item) {
+      Object.assign(item, itemData);
+      item.legacy = false;
+    }
+
+    alert('Compromisso atualizado!');
+  } else {
+    items.push({
+      id: crypto.randomUUID(),
+      ...itemData
+    });
+
+    alert('Compromisso salvo!');
+  }
+
   save();
-  e.target.reset();
-  $('itemDate').value = today();
+  cancelEdit();
   render();
-  alert('Compromisso salvo!');
 });
+
+function editItem(id) {
+  const item = items.find(x => x.id === id);
+  if (!item) return;
+
+  editingItemId = id;
+
+  $('itemName').value = item.name;
+  $('category').value = item.category;
+  $('itemDate').value = item.date || today();
+  $('itemTime').value = item.time;
+  $('repeat').value = item.repeat || 'none';
+  $('itemDetails').value = item.details || '';
+
+  $('saveItemButton').textContent = 'Salvar alterações';
+  $('cancelEditButton').style.display = 'inline-block';
+
+  showPage(
+    'schedulePage',
+    document.querySelectorAll('nav button')[2]
+  );
+
+  $('itemName').focus();
+}
+
+function cancelEdit() {
+  editingItemId = null;
+
+  $('itemForm').reset();
+  $('itemDate').value = today();
+
+  $('saveItemButton').textContent = 'Salvar compromisso';
+  $('cancelEditButton').style.display = 'none';
+}
+
+
 
 function renderItems() {
   const list = $('itemList');
@@ -829,7 +983,11 @@ function renderItems() {
     return;
   }
 
-  items.slice().sort((a,b) => a.time.localeCompare(b.time)).forEach(item => {
+  items.slice().sort((a, b) => {
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    return dateA.localeCompare(dateB) || a.time.localeCompare(b.time);
+  }).forEach(item => {
     const el = document.createElement('div');
     el.className = 'item';
 
@@ -843,7 +1001,25 @@ function renderItems() {
     date.textContent = item.legacy ? 'Todos os dias' :
       item.repeat === 'daily' ? 'Todos os dias' :
       item.repeat === 'weekly' ? 'Toda semana' :
-      new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR');
+      item.date
+        ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR')
+        : 'Data não definida';
+
+    el.append(title, detail, date);
+
+    if (item.details) {
+      const note = document.createElement('small');
+      note.textContent = item.details;
+      el.append(note);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    const edit = document.createElement('button');
+    edit.className = 'secondary';
+    edit.textContent = 'Editar';
+    edit.onclick = () => editItem(item.id);
 
     const remove = document.createElement('button');
     remove.className = 'secondary';
@@ -852,21 +1028,22 @@ function renderItems() {
     remove.onclick = () => {
       if (confirm('Excluir este compromisso? Os registros anteriores serão preservados.')) {
         items = items.filter(x => x.id !== item.id);
+
+        if (editingItemId === item.id) {
+          cancelEdit();
+        }
+
         save();
         render();
       }
     };
 
-    el.append(title, detail, date);
-    if (item.details) {
-      const note = document.createElement('small');
-      note.textContent = item.details;
-      el.append(note);
-    }
-    el.append(remove);
+    actions.append(edit, remove);
+    el.append(actions);
     list.append(el);
   });
 }
+
 
 function changeMonth(n) {
   viewDate.setMonth(viewDate.getMonth() + n);
