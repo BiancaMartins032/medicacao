@@ -877,6 +877,9 @@ function renderHome() {
 $('itemForm').addEventListener('submit', e => {
   e.preventDefault();
 
+ $('itemForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+
   const itemData = {
     name: $('itemName').value.trim(),
     category: $('category').value,
