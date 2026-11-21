@@ -643,7 +643,6 @@ function createItemElement(item, date) {
 
 function renderHome() {
   $('todayDate').textContent = new Date().toLocaleDateString('pt-BR');
-    const theme = document.body.dataset.theme === 'black' ? 'preto' : 'rosa';
 
     const cat = $('catReaction');
 
@@ -659,7 +658,13 @@ function renderHome() {
 
     const reaction = hasMissed ? 'tristinho' : allDone ? 'feliz' : 'esperando';
 
-    cat.src = `./gatinho-${reaction}-${theme}.jpg`;
+    const catImages = {
+  feliz: './gatinho-feliz-preto-removebg-preview.png',
+  tristinho: './gatinho-tristinho-preto-removebg-preview.png',
+  esperando: './gatinho-esperando-preto-removebg-preview.png'
+};
+
+cat.src = catImages[reaction];
     cat.alt = `Gatinho ${reaction}`;
   }
 
