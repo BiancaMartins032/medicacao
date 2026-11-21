@@ -1266,6 +1266,38 @@ function createLocalBackup() {
 
   URL.revokeObjectURL(url);
 }
+  async function readLocalBackupFile(file) {
+  if (!file) return null;
+
+  try {
+    const text = await file.text();
+    const backup = JSON.parse(text);
+
+    if (
+      !backup ||
+      backup.app !== 'Meus Horários' ||
+      !Array.isArray(backup.items) ||
+      !backup.records ||
+      typeof backup.records !== 'object'
+    ) {
+      alert('Arquivo de backup inválido ou incompatível.');
+      return null;
+    }
+
+    window.recoveryBackup = backup;
+
+    alert(
+      'Backup carregado com sucesso!\n' +
+      'Tarefas encontradas: ' + backup.items.length
+    );
+
+    return backup;
+  } catch (error) {
+    console.error(error);
+    alert('Não foi possível ler o arquivo de backup.');
+    return null;
+  }
+}
 
 
   
