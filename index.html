@@ -525,8 +525,11 @@ function applyTheme() {
   $('pinkTheme').classList.toggle('active', theme === 'pink');
   $('blackTheme').classList.toggle('active', theme === 'black');
 
-  $('themeColor').content =
-    theme === 'black' ? '#171719' : '#D96F9C';
+  const themeMeta = $('themeColor');
+
+if (themeMeta) {
+  themeMeta.content = theme === 'black' ? '#171719' : '#D96F9C';
+}
   document.documentElement.style.backgroundColor =
   theme === 'black' ? '#151517' : '#F7F7F9';
 
