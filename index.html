@@ -1065,6 +1065,76 @@ async function sendCoupleInvite() {
   message.textContent =
     'Convite registrado! Seu parceiro precisará aceitar para entrar no espaço.';
 }
+  
+async function loadCoupleInvites() {
+  const container = $('receivedInvites');
+  const message = $('receivedInviteMessage');
+
+  container.replaceChildren();
+  message.textContent = 'Buscando convites...';
+
+  const { data: userData, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (userError || !userData.user) {
+    message.textContent = 'Entre na sua conta para ver os convites.';
+    return;
+  }
+
+  const email = userData.user.email.toLowerCase();
+
+  const { data, error } = await supabaseClient
+    .from('couple_invites')
+    .select('id, created_at')
+    .eq('invited_email', email)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    message.textContent = 'Erro ao buscar convites: ' + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    message.textContent = 'Você não tem convites pendentes.';
+    return;
+  }
+
+  message.textContent = 'Você recebeu ' + data.length + ' convite(s).';
+
+  data.forEach(invite => {
+    const card = document.createElement('div');
+    const button = document.createElement('button');
+
+    card.className = 'invite-item';
+    button.type = 'button';
+    button.textContent = 'Aceitar convite';
+    button.onclick = () => acceptCoupleInvite(invite.id);
+
+    card.appendChild(button);
+    container.appendChild(card);
+  });
+}
+
+async function acceptCoupleInvite(inviteId) {
+  const message = $('receivedInviteMessage');
+
+  message.textContent = 'Aceitando convite...';
+
+  const { error } = await supabaseClient.rpc(
+    'accept_couple_invite',
+    { p_invite_id: inviteId }
+  );
+
+  if (error) {
+    message.textContent = 'Não foi possível aceitar: ' + error.message;
+    return;
+  }
+
+  message.textContent = 'Convite aceito! Vocês agora estão conectados.';
+  await loadCoupleInvites();
+}
+
 
 
 
