@@ -874,10 +874,8 @@ function renderHome() {
 }
 
 
-$('itemForm').addEventListener('submit', e => {
-  e.preventDefault();
 
- $('itemForm').addEventListener('submit', (e) => {
+$('itemForm').addEventListener('submit', (e) => {
   e.preventDefault();
 
   const itemData = {
@@ -911,6 +909,7 @@ $('itemForm').addEventListener('submit', e => {
   cancelEdit();
   render();
 });
+
 
 function editItem(id) {
   const item = items.find(x => x.id === id);
