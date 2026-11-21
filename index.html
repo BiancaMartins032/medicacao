@@ -861,7 +861,17 @@ body[data-theme="black"] .monthly-dot.missed {
   <button onclick="showPage('settingsPage',this)">☰<br>Mais</button>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  
+const SUPABASE_URL = 'https://rhpywkpuuqswtnphcpbc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_5nCbpojl6TGfSYzkE3N5bA_HoH-J63j';
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
 const $ = id => document.getElementById(id);
 
 function today() {
