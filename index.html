@@ -989,13 +989,13 @@ body[data-theme="black"] .monthly-dot.missed {
       <p id="inviteMessage" class="note"></p>
     </div>
 
-    <div>
-      <h3>Convites recebidos</h3>
-      <p class="note">Veja se alguém convidou você para um espaço casal.</p>
-      <button type="button" onclick="loadCoupleInvites()">Ver meus convites</button>
-      <div id="receivedInvites"></div>
-      <p id="receivedInviteMessage" class="note"></p>
-    </div>
+    <div id="receivedInvitesArea">
+  <h3>Convites recebidos</h3>
+  <p class="note">Veja se alguém convidou você para um espaço casal.</p>
+  <button type="button" onclick="loadCoupleInvites()">Ver meus convites</button>
+  <div id="receivedInvites"></div>
+  <p id="receivedInviteMessage" class="note"></p>
+</div>
 
   </div>
 </div>
@@ -1332,6 +1332,7 @@ function showMoreMenu() {
   const setup = $('coupleSetup');
   const createArea = $('createCoupleArea');
   const inviteArea = $('coupleInviteArea');
+  const receivedInvitesArea = $('receivedInvitesArea');
 
   status.textContent = 'Verificando a conexão...';
   setup.style.display = 'none';
@@ -1357,6 +1358,7 @@ function showMoreMenu() {
     setup.style.display = 'block';
     createArea.style.display = 'block';
     inviteArea.style.display = 'none';
+    receivedInvitesArea.style.display = 'block';
     return;
   }
 
@@ -1367,6 +1369,7 @@ function showMoreMenu() {
   if (couple.member_count >= 2) {
     createArea.style.display = 'none';
     inviteArea.style.display = 'none';
+    receivedInvitesArea.style.display = 'none';
 
     status.innerHTML = `
       <h3>Vocês estão conectados!</h3>
@@ -1378,6 +1381,7 @@ function showMoreMenu() {
 
   createArea.style.display = 'none';
   inviteArea.style.display = 'block';
+  receivedInvitesArea.style.display = 'block';
 
   status.innerHTML = `
     <h3>Espaço criado!</h3>
