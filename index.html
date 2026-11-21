@@ -358,7 +358,85 @@ body[data-theme="black"] {
     font-size: 14px;
   }
 }
+.home-title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  margin: 8px 0 20px;
+  color: #222;
+}
+  .daily-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
 
+.chart-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.chart-center {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-center strong {
+  font-size: 27px;
+}
+
+.chart-center small {
+  font-size: 12px;
+}
+
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  min-width: 145px;
+}
+
+.chart-legend > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.chart-legend strong {
+  margin-left: auto;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot.done {
+  background: #D98AC7;
+}
+
+.dot.pending {
+  background: #343746;
+}
+
+.dot.missed {
+  background: #B9A6A6;
+}
 </style>
 </head>
 
@@ -374,6 +452,8 @@ body[data-theme="black"] {
 
 
 <section id="home" class="page active">
+
+  <h2 class="home-title">Rotina de hoje</h2>
 
   <div class="card">
     <div class="section-title">
@@ -399,13 +479,29 @@ body[data-theme="black"] {
     </div>
   </div>
 
-  <div class="card">
-    <h3>Resumo do meu dia</h3>
-    <div id="progress"></div>
-    <div id="dailyDetails"></div>
-  </div>
+  
+<div class="card daily-summary">
+  <h3>Resumo do meu dia</h3>
 
+  <div id="progress"></div>
+
+  <div class="daily-chart">
+    <div class="chart-circle" id="dailyChart">
+      <div class="chart-center">
+        <strong id="dailyPercentage">0%</strong>
+        <small>concluído</small>
+      </div>
+    </div>
+
+    <div class="chart-legend">
+      <div><span class="dot done"></span> Concluídos <strong id="chartDone">0</strong></div>
+      <div><span class="dot pending"></span> Pendentes <strong id="chartPending">0</strong></div>
+      <div><span class="dot missed"></span> Não realizados <strong id="chartMissed">0</strong></div>
+    </div>
+  </div>
+</div>
 </section>
+
 
 <section id="calendarPage" class="page">
   <div class="card">
@@ -708,11 +804,9 @@ function renderHome() {
 
   const plannedList = $('todayList');
   const completedList = $('completedList');
-  const dailyDetails = $('dailyDetails');
 
   plannedList.innerHTML = '';
   completedList.innerHTML = '';
-  dailyDetails.innerHTML = '';
 
   let done = 0;
   let missed = 0;
@@ -745,33 +839,8 @@ function renderHome() {
         completed.append(note);
       }
 
-      completedList.append(completed);
+            completedList.append(completed);
     }
-
-    const summaryItem = document.createElement('div');
-    summaryItem.className = 'item';
-
-    const name = document.createElement('strong');
-    name.textContent = item.name;
-
-    const detail = document.createElement('small');
-    detail.textContent = `${item.time} · ${item.category}`;
-
-    const statusText = document.createElement('small');
-    statusText.textContent =
-      status === 'done' ? 'Concluído' :
-      status === 'missed' ? 'Não realizado' :
-      'Pendente';
-
-    summaryItem.append(name, detail, statusText);
-
-    if (item.details) {
-      const note = document.createElement('small');
-      note.textContent = item.details;
-      summaryItem.append(note);
-    }
-
-    dailyDetails.append(summaryItem);
   });
 
   if (!todayItems.length) {
@@ -784,14 +853,29 @@ function renderHome() {
       '<div class="empty">Suas conquistas de hoje ainda estão esperando por você!</div>';
   }
 
-  $('progress').textContent = todayItems.length
-    ? `${todayItems.length} planejados · ${done} concluídos · ${pending} pendentes · ${missed} não realizados`
-    : 'Adicione compromissos para organizar seu dia.';
+  const total = todayItems.length;
 
-  if (!todayItems.length) {
-    dailyDetails.innerHTML =
-      '<div class="empty">Seu resumo aparecerá aqui quando houver compromissos.</div>';
-  }
+$('progress').textContent = total
+  ? `${total} compromissos na rotina de hoje`
+  : 'Adicione compromissos para organizar seu dia.';
+
+const percentage = total ? Math.round((done / total) * 100) : 0;
+
+$('dailyPercentage').textContent = `${percentage}%`;
+$('chartDone').textContent = done;
+$('chartPending').textContent = pending;
+$('chartMissed').textContent = missed;
+
+const doneAngle = total ? (done / total) * 360 : 0;
+const pendingAngle = total ? (pending / total) * 360 : 0;
+
+$('dailyChart').style.background = total
+  ? `conic-gradient(
+      #D98AC7 0deg ${doneAngle}deg,
+      #343746 ${doneAngle}deg ${doneAngle + pendingAngle}deg,
+      #B9A6A6 ${doneAngle + pendingAngle}deg 360deg
+    )`
+  : '#E9E5E5';
 
   // Reação dos gatinhos
   const cat = $('catReaction');
