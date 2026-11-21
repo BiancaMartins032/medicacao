@@ -663,18 +663,46 @@ body[data-theme="black"] .monthly-dot.missed {
     <div id="dayDetails"></div>
   </div>
 
-  <div class="card monthly-summary">
+ 
+<div class="card monthly-summary">
   <h3>Minha evolução mensal</h3>
-  <p class="note">Compare seu desempenho nos últimos 12 meses.</p>
+  <p class="note">
+    Percentual de compromissos concluídos desde novembro de 2026.
+  </p>
 
-  <div class="monthly-legend">
-    <span><i class="monthly-dot done"></i> Concluídos</span>
-    <span><i class="monthly-dot pending"></i> Pendentes</span>
-    <span><i class="monthly-dot missed"></i> Não realizados</span>
+  <div class="monthly-chart-wrapper">
+
+    <div class="monthly-y-axis">
+      <span>100%</span>
+      <span>75%</span>
+      <span>50%</span>
+      <span>25%</span>
+      <span>0%</span>
+    </div>
+
+    <div class="monthly-plot">
+      <div class="monthly-grid-lines">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div id="monthlyAverageLine" class="monthly-average-line"></div>
+
+      <div id="monthlyAverageLabel" class="monthly-average-label"></div>
+
+      <div id="monthlyChart" class="monthly-columns"></div>
+    </div>
+
   </div>
 
-  <div id="monthlyChart" class="monthly-columns"></div>
+  <div id="monthlyDetails" class="monthly-details">
+    Toque em uma coluna para consultar os resultados do mês.
+  </div>
 </div>
+
 </section>
 
 <section id="schedulePage" class="page">
