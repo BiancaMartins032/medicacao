@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "medicacao-v6";
+const CACHE_NAME = "medicacao-v7";
 
 const FILES = [
   "./",
