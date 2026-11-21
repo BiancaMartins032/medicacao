@@ -811,10 +811,13 @@ body[data-theme="black"] .monthly-dot.missed {
   </div>
 </section>
 
+
 <section id="settingsPage" class="page">
+
+  <!-- APARÊNCIA -->
   <div class="card">
     <h3>Aparência</h3>
-    <p class="note">Escolha a identidade visual que prefere usar.</p>
+    <p class="note">Personalize as cores do aplicativo.</p>
 
     <div class="theme-options">
       <button type="button" class="theme-option" id="pinkTheme"
@@ -831,83 +834,101 @@ body[data-theme="black"] .monthly-dot.missed {
     </div>
   </div>
 
+  <!-- MINHA CONTA -->
   <div class="card">
-    <h3>Seus dados</h3>
-    <p class="note">Seus compromissos ficam salvos neste navegador.</p>
-    <button onclick="exportData()">Fazer backup</button>
-    <p class="note">Guarde o arquivo de backup em um local seguro.</p>
-  </div>
+    <h3>Minha conta</h3>
+    <p class="note">
+      Entre na sua conta para acessar os recursos de conexão com seu parceiro.
+    </p>
 
- 
-  <div class="card">
-    <h3>Conta e conexão</h3>
-    <p class="note">Entre na sua conta para conectar seus compromissos compartilhados com seu parceiro.</p>
+    <label for="accountEmail">Seu e-mail</label>
+    <input id="accountEmail" type="email"
+      placeholder="seu@email.com" autocomplete="email">
 
-    <label for="accountEmail">E-mail</label>
-    <input id="accountEmail" type="email" placeholder="seu@email.com" autocomplete="email">
-
-    <label for="accountPassword">Senha</label>
-    <input id="accountPassword" type="password" placeholder="Sua senha" autocomplete="current-password">
+    <label for="accountPassword">Sua senha</label>
+    <input id="accountPassword" type="password"
+      placeholder="Digite sua senha" autocomplete="current-password">
 
     <button type="button" onclick="signUpAccount()">Criar conta</button>
-    <button type="button" class="secondary" onclick="signInAccount()">Entrar</button>
-    <button type="button" class="secondary" onclick="signOutAccount()">Sair da conta</button>
+    <button type="button" class="secondary"
+      onclick="signInAccount()">Entrar</button>
+    <button type="button" class="secondary"
+      onclick="signOutAccount()">Sair da conta</button>
 
     <p id="accountMessage" class="note"></p>
   </div>
 
+  <!-- ESPAÇO CASAL -->
   <div class="card">
-    
-<div class="card">
-  <h3>Nosso espaço</h3>
-  <p class="note">
-    Crie o espaço do casal para começar a compartilhar atividades.
-  </p>
+    <h3>Espaço casal</h3>
+    <p class="note">
+      Conecte sua conta à do seu parceiro para compartilhar atividades.
+    </p>
 
-  <button type="button" onclick="createCoupleSpace()">
-    Criar espaço do casal
-  </button>
+    <p class="note">
+      Primeiro, crie o espaço do casal. Depois, envie um convite usando
+      o e-mail da outra pessoa.
+    </p>
 
-  <p id="coupleMessage" class="note"></p>
-  
-<label for="partnerEmail">E-mail do parceiro</label>
-<input
-  id="partnerEmail"
-  type="email"
-  placeholder="email@exemplo.com"
-  autocomplete="email"
->
+    <button type="button" onclick="createCoupleSpace()">
+      Criar espaço do casal
+    </button>
 
-<button type="button" onclick="sendCoupleInvite()">
-  Enviar convite
-</button>
+    <p id="coupleMessage" class="note"></p>
 
-<p id="inviteMessage" class="note"></p>
+    <label for="partnerEmail">E-mail do parceiro</label>
+    <input id="partnerEmail" type="email"
+      placeholder="email@exemplo.com" autocomplete="email">
 
-</div>
-    
-<div class="card">
-  <h3>Convites recebidos</h3>
-  <p class="note">
-    Quando alguém convidar você, o convite aparecerá aqui.
-  </p>
+    <button type="button" onclick="sendCoupleInvite()">
+      Enviar convite
+    </button>
 
-  <button type="button" onclick="loadCoupleInvites()">
-    Ver convites
-  </button>
+    <p id="inviteMessage" class="note"></p>
+  </div>
 
-  <div id="receivedInvites"></div>
-  <p id="receivedInviteMessage" class="note"></p>
-</div>
+  <!-- CONVITES -->
+  <div class="card">
+    <h3>Convites recebidos</h3>
+    <p class="note">
+      Veja se alguém convidou você para participar de um espaço casal.
+    </p>
 
+    <button type="button" onclick="loadCoupleInvites()">
+      Ver meus convites
+    </button>
 
+    <div id="receivedInvites"></div>
+    <p id="receivedInviteMessage" class="note"></p>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="card">
+    <h3>Backup e restauração</h3>
+    <p class="note">
+      Salve uma cópia dos seus compromissos para não perder seus dados.
+    </p>
+
+    <button type="button" onclick="exportData()">
+      Fazer backup
+    </button>
+
+    <p class="note">
+      Guarde o arquivo em um local seguro.
+    </p>
+  </div>
+
+  <!-- SOBRE -->
+  <div class="card">
     <h3>Sobre os lembretes</h3>
     <p class="note">
       O cadastro e a organização dos compromissos já estão disponíveis.
       As notificações serão adicionadas em uma próxima etapa.
     </p>
   </div>
+
 </section>
+
 
 </main>
 
