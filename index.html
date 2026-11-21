@@ -970,18 +970,31 @@ body[data-theme="black"] .monthly-dot.missed {
         <option>Outros</option>
       </select>
 
-      <label for="itemDate">Data</label>
+     <label for="itemDate">Data</label>
       <input id="itemDate" type="date" required>
 
       <label for="itemTime">Horário a ser realizado</label>
       <input id="itemTime" type="time" required>
 
-      <label for="repeat">Repetição</label>
-      <select id="repeat">
-        <option value="none">Não se repete</option>
-        <option value="daily">Todos os dias</option>
-        <option value="weekly">Toda semana</option>
-      </select>
+      
+<label>Em quais dias essa tarefa deve ser realizada?</label>
+
+<div id="taskWeekdays" class="weekdays-grid">
+
+  <label><input type="checkbox" value="1"> Segunda-feira</label>
+  <label><input type="checkbox" value="2"> Terça-feira</label>
+  <label><input type="checkbox" value="3"> Quarta-feira</label>
+  <label><input type="checkbox" value="4"> Quinta-feira</label>
+  <label><input type="checkbox" value="5"> Sexta-feira</label>
+  <label><input type="checkbox" value="6"> Sábado</label>
+  <label><input type="checkbox" value="0"> Domingo</label>
+
+</div>
+
+<p style="font-size:12px; color:var(--muted);">
+  Selecione um ou mais dias. A tarefa será cadastrada uma única vez e aparecerá nos dias escolhidos.
+</p>
+
 
       <label for="itemDetails">Observações (opcional)</label>
       <textarea id="itemDetails" maxlength="300"
@@ -1679,17 +1692,40 @@ function showPage(id, btn) {
   render();
 }
 
+
 function isScheduled(item, date) {
+  // Preserva o comportamento das tarefas antigas
   if (item.legacy || item.repeat === 'daily') return true;
+
   if (!item.date) return false;
-  if (item.repeat === 'none') return item.date === date;
+
+  // Novos agendamentos por dias da semana
+  if (Array.isArray(item.weekdays) && item.weekdays.length > 0) {
+    const start = new Date(item.date + 'T12:00:00');
+    const current = new Date(date + 'T12:00:00');
+
+    return (
+      current >= start &&
+      item.weekdays.includes(current.getDay())
+    );
+  }
+
+  // Compatibilidade com tarefas já cadastradas
+  if (item.repeat === 'none') {
+    return item.date === date;
+  }
+
   if (item.repeat === 'weekly') {
     const start = new Date(item.date + 'T12:00:00');
     const current = new Date(date + 'T12:00:00');
-    return current >= start && current.getDay() === start.getDay();
+
+    return current >= start &&
+      current.getDay() === start.getDay();
   }
+
   return false;
 }
+
 
 function statusFor(item, date) {
   return records[date]?.[item.id] || 'pending';
@@ -2010,8 +2046,8 @@ function renderHome() {
   $('todayDate').textContent = new Date().toLocaleDateString('pt-BR');
 
   const todayItems = items
-    .filter(item => isScheduled(item, date))
-    .sort((a, b) => a.time.localeCompare(b.time));
+  .filter(item => isScheduled(item, date))
+  .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
   const plannedList = $('todayList');
   const completedList = $('completedList');
@@ -2195,17 +2231,63 @@ chartCenter.style.color = chartColors.text;
 
 
 
+
 $('itemForm').addEventListener('submit', (e) => {
   e.preventDefault();
+
+  const weekdays = Array.from(
+    document.querySelectorAll('#taskWeekdays input[type="checkbox"]:checked')
+  ).map(input => Number(input.value));
 
   const itemData = {
     name: $('itemName').value.trim(),
     category: $('category').value,
     date: $('itemDate').value,
     time: $('itemTime').value,
-    repeat: $('repeat').value,
+    weekdays: weekdays,
     details: $('itemDetails').value.trim()
   };
+
+  if (!itemData.name) {
+    alert('Digite o nome da tarefa.');
+    return;
+  }
+
+  if (!itemData.date) {
+    alert('Selecione a data de início.');
+    return;
+  }
+
+  if (weekdays.length === 0) {
+    alert('Selecione pelo menos um dia da semana.');
+    return;
+  }
+
+  // Impede tarefas com nomes duplicados
+  const normalizedName = itemData.name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+
+  const duplicate = items.find(item => {
+    if (editingItemId && item.id === editingItemId) return false;
+
+    const existingName = (item.name || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+
+    return existingName === normalizedName;
+  });
+
+  if (duplicate) {
+    alert('Essa tarefa já está cadastrada. Edite a tarefa existente para alterar os dias.');
+    return;
+  }
 
   if (editingItemId) {
     const item = items.find(x => x.id === editingItemId);
@@ -2213,6 +2295,7 @@ $('itemForm').addEventListener('submit', (e) => {
     if (item) {
       Object.assign(item, itemData);
       item.legacy = false;
+      delete item.repeat;
     }
 
     alert('Tarefa atualizada!');
@@ -2232,22 +2315,54 @@ $('itemForm').addEventListener('submit', (e) => {
 
 
 
+
 function editItem(id) {
   const item = items.find(x => x.id === id);
   if (!item) return;
 
   editingItemId = id;
 
-  $('itemName').value = item.name;
-  $('category').value = item.category;
+  $('itemName').value = item.name || '';
+  $('category').value = item.category || '';
   $('itemDate').value = item.date || today();
   $('itemTime').value = item.time || '';
-  $('repeat').value = item.repeat || 'none';
   $('itemDetails').value = item.details || '';
+
+  // Limpa as seleções anteriores
+  document.querySelectorAll(
+    '#taskWeekdays input[type="checkbox"]'
+  ).forEach(input => {
+    input.checked = false;
+  });
+
+  // Recupera os dias já cadastrados
+  let savedWeekdays = item.weekdays;
+
+  // Compatibilidade com tarefas antigas
+  if (!Array.isArray(savedWeekdays) || savedWeekdays.length === 0) {
+    if (item.repeat === 'daily') {
+      savedWeekdays = [0, 1, 2, 3, 4, 5, 6];
+    } else if (item.repeat === 'weekly' && item.date) {
+      savedWeekdays = [
+        new Date(item.date + 'T12:00:00').getDay()
+      ];
+    } else if (item.repeat === 'none' && item.date) {
+      savedWeekdays = [
+        new Date(item.date + 'T12:00:00').getDay()
+      ];
+    } else {
+      savedWeekdays = [];
+    }
+  }
+
+  document.querySelectorAll(
+    '#taskWeekdays input[type="checkbox"]'
+  ).forEach(input => {
+    input.checked = savedWeekdays.includes(Number(input.value));
+  });
 
   $('saveItemButton').textContent = 'Salvar alterações';
   $('cancelEditButton').style.display = 'inline-block';
-
   $('taskModalTitle').textContent = 'Editar tarefa';
 
   openTaskModal();
@@ -2256,11 +2371,23 @@ function editItem(id) {
 }
 
 
+
+
 function cancelEdit() {
   editingItemId = null;
 
   $('itemForm').reset();
   $('itemDate').value = today();
+
+  // Desmarca todos os dias da semana
+  document.querySelectorAll(
+    '#taskWeekdays input[type="checkbox"]'
+  ).forEach(input => {
+    input.checked = false;
+  });
+
+  // Restaura os campos de tarefas compartilhadas
+  updateTaskType();
 
   $('saveItemButton').textContent = 'Salvar tarefa';
   $('cancelEditButton').style.display = 'none';
@@ -2272,36 +2399,66 @@ function cancelEdit() {
 
 
 
+
+
 function renderItems() {
   const list = $('itemList');
   list.innerHTML = '';
 
   if (!items.length) {
-    list.innerHTML = '<div class="empty">Você ainda não cadastrou compromissos.</div>';
+    list.innerHTML = '<div class="empty">Você ainda não cadastrou tarefas.</div>';
     return;
   }
+
+  const weekdayNames = [
+    'Domingo',
+    'Segunda-feira',
+    'Terça-feira',
+    'Quarta-feira',
+    'Quinta-feira',
+    'Sexta-feira',
+    'Sábado'
+  ];
 
   items.slice().sort((a, b) => {
     const dateA = a.date || '';
     const dateB = b.date || '';
-    return dateA.localeCompare(dateB) || a.time.localeCompare(b.time);
+    return dateA.localeCompare(dateB) ||
+      (a.time || '').localeCompare(b.time || '');
   }).forEach(item => {
     const el = document.createElement('div');
     el.className = 'item';
 
     const title = document.createElement('strong');
-    title.textContent = item.name;
+    title.textContent = item.name || 'Tarefa sem nome';
 
     const detail = document.createElement('small');
-    detail.textContent = `${item.category} · ${item.time}`;
+    detail.textContent =
+      `${item.category || 'Sem categoria'} · ${item.time || 'Sem horário definido'}`;
 
     const date = document.createElement('small');
-    date.textContent = item.legacy ? 'Todos os dias' :
-      item.repeat === 'daily' ? 'Todos os dias' :
-      item.repeat === 'weekly' ? 'Toda semana' :
-      item.date
-        ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR')
+
+    if (item.legacy || item.repeat === 'daily') {
+      date.textContent = 'Todos os dias';
+    } else if (Array.isArray(item.weekdays) && item.weekdays.length > 0) {
+      const selectedDays = item.weekdays
+        .slice()
+        .sort((a, b) => a - b)
+        .map(day => weekdayNames[day])
+        .join(', ');
+
+      date.textContent = `Dias: ${selectedDays} · Início: ${
+        item.date
+          ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR')
+          : 'Não definido'
+      }`;
+    } else if (item.repeat === 'weekly') {
+      date.textContent = 'Toda semana';
+    } else {
+      date.textContent = item.date
+        ? `Data: ${new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR')}`
         : 'Data não definida';
+    }
 
     el.append(title, detail, date);
 
@@ -2324,7 +2481,7 @@ function renderItems() {
     remove.textContent = 'Excluir';
 
     remove.onclick = () => {
-      if (confirm('Excluir este compromisso? Os registros anteriores serão preservados.')) {
+      if (confirm('Excluir esta tarefa? Os registros anteriores serão preservados.')) {
         items = items.filter(x => x.id !== item.id);
 
         if (editingItemId === item.id) {
@@ -2341,6 +2498,7 @@ function renderItems() {
     list.append(el);
   });
 }
+
 
 
 
