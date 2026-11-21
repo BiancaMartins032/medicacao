@@ -111,6 +111,12 @@ button {
   cursor: pointer;
 }
 
+body[data-theme="black"] button:not(.secondary):not(nav button) {
+  background: #48484F;
+  color: #FFFFFF;
+  border: 1px solid #686870;
+}
+
 button.secondary {
   background: var(--soft);
   color: var(--text);
