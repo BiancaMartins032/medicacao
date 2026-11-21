@@ -874,35 +874,6 @@ function renderHome() {
 }
 
 
-  const list = $('todayList');
-  list.innerHTML = '';
-
-  const todayItems = items
-    .filter(item => isScheduled(item, today()))
-    .sort((a,b) => a.time.localeCompare(b.time));
-
-  if (!todayItems.length) {
-    list.innerHTML = '<div class="empty">Sua agenda está livre por enquanto.</div>';
-  }
-
-  let done = 0, missed = 0, pending = 0;
-
-  todayItems.forEach(item => {
-    const status = statusFor(item, today());
-    if (status === 'done') done++;
-    else if (status === 'missed') missed++;
-    else pending++;
-
-    list.append(createItemElement(item, today()));
-  });
-
-  $('progress').textContent = todayItems.length
-    ? `${done} concluídos · ${pending} pendentes · ${missed} não realizados`
-    : 'Adicione seus compromissos para organizar seu dia.';
-}
-
-
-
 $('itemForm').addEventListener('submit', e => {
   e.preventDefault();
 
