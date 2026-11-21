@@ -1213,7 +1213,7 @@ async function loadCoupleInvites() {
 
   const { data, error } = await supabaseClient
     .from('couple_invites')
-    .select('id, created_at')
+    .select('id, created_at, invited_by')
     .eq('invited_email', email)
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
@@ -1230,18 +1230,32 @@ async function loadCoupleInvites() {
 
   message.textContent = 'Você recebeu ' + data.length + ' convite(s).';
 
-  data.forEach(invite => {
-    const card = document.createElement('div');
-    const button = document.createElement('button');
+  
+data.forEach(invite => {
+  const card = document.createElement('div');
+  const sender = document.createElement('p');
+  const date = document.createElement('p');
+  const button = document.createElement('button');
 
-    card.className = 'invite-item';
-    button.type = 'button';
-    button.textContent = 'Aceitar convite';
-    button.onclick = () => acceptCoupleInvite(invite.id);
+  card.className = 'invite-item';
 
-    card.appendChild(button);
-    container.appendChild(card);
-  });
+  sender.className = 'note';
+  sender.textContent = 'Enviado por: ' + invite.invited_by;
+
+  date.className = 'note';
+  date.textContent = 'Data: ' +
+    new Date(invite.created_at).toLocaleDateString('pt-BR');
+
+  button.type = 'button';
+  button.textContent = 'Aceitar convite';
+  button.onclick = () => acceptCoupleInvite(invite.id);
+
+  card.appendChild(sender);
+  card.appendChild(date);
+  card.appendChild(button);
+
+  container.appendChild(card);
+});
 }
 
 async function acceptCoupleInvite(inviteId) {
