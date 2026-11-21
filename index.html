@@ -972,29 +972,49 @@ body[data-theme="black"] .monthly-dot.missed {
     <p id="accountMessage" class="note"></p>
   </div>
 
-  <div id="moreCouple" style="display:none">
-    <button type="button" class="secondary" onclick="showMoreMenu()">← Voltar</button>
-    <h2>Espaço casal</h2>
-    <p class="note">Um espaço para conectar vocês e compartilhar atividades.</p>
+  
+<div id="moreCouple" style="display:none">
+  <button type="button" class="secondary" onclick="showMoreMenu()">← Voltar</button>
 
-    <h3>1. Criar espaço</h3>
-    <p class="note">Crie o espaço uma única vez para começar.</p>
-    <button type="button" onclick="createCoupleSpace()">Criar espaço do casal</button>
-    <p id="coupleMessage" class="note"></p>
+  <h2>Espaço casal</h2>
+  <p class="note">Um espaço para conectar vocês e compartilhar atividades.</p>
 
-    <h3>2. Convidar parceiro</h3>
-    <p class="note">Informe o e-mail usado pelo seu parceiro na conta dele.</p>
-    <label for="partnerEmail">E-mail do parceiro</label>
-    <input id="partnerEmail" type="email" placeholder="email@exemplo.com" autocomplete="email">
-    <button type="button" onclick="sendCoupleInvite()">Enviar convite</button>
-    <p id="inviteMessage" class="note"></p>
-
-    <h3>3. Convites recebidos</h3>
-    <p class="note">Veja se alguém convidou você para um espaço casal.</p>
-    <button type="button" onclick="loadCoupleInvites()">Ver meus convites</button>
-    <div id="receivedInvites"></div>
-    <p id="receivedInviteMessage" class="note"></p>
+  <div id="coupleStatus" class="card">
+    <p class="note">Verificando a conexão...</p>
   </div>
+
+  <div id="coupleSetup" style="display:none">
+
+    <div id="createCoupleArea">
+      <h3>Criar espaço</h3>
+      <p class="note">Crie seu espaço para começar a conexão.</p>
+      <button type="button" onclick="createCoupleSpace()">Criar espaço do casal</button>
+      <p id="coupleMessage" class="note"></p>
+    </div>
+
+    <div id="coupleInviteArea">
+      <h3>Convidar parceiro</h3>
+      <p class="note">Informe o e-mail usado pelo seu parceiro na conta dele.</p>
+
+      <label for="partnerEmail">E-mail do parceiro</label>
+      <input id="partnerEmail" type="email"
+        placeholder="email@exemplo.com" autocomplete="email">
+
+      <button type="button" onclick="sendCoupleInvite()">Enviar convite</button>
+      <p id="inviteMessage" class="note"></p>
+    </div>
+
+    <div>
+      <h3>Convites recebidos</h3>
+      <p class="note">Veja se alguém convidou você para um espaço casal.</p>
+      <button type="button" onclick="loadCoupleInvites()">Ver meus convites</button>
+      <div id="receivedInvites"></div>
+      <p id="receivedInviteMessage" class="note"></p>
+    </div>
+
+  </div>
+</div>
+
 
   <div id="moreAppearance" style="display:none">
     <button type="button" class="secondary" onclick="showMoreMenu()">← Voltar</button>
@@ -1297,7 +1317,11 @@ function openMoreSection(section) {
   const selected = 'more' +
     section.charAt(0).toUpperCase() + section.slice(1);
 
-  $(selected).style.display = 'block';
+ $(selected).style.display = 'block';
+
+if (section === 'couple') {
+  loadCoupleStatus();
+}
 }
 
 function showMoreMenu() {
@@ -1318,6 +1342,73 @@ function showMoreMenu() {
 }
 
 
+  async function loadCoupleStatus() {
+  const status = $('coupleStatus');
+  const setup = $('coupleSetup');
+  const createArea = $('createCoupleArea');
+  const inviteArea = $('coupleInviteArea');
+
+  status.textContent = 'Verificando a conexão...';
+  setup.style.display = 'none';
+
+  const { data: userData, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (userError || !userData.user) {
+    status.textContent = 'Entre na sua conta para consultar o Espaço casal.';
+    return;
+  }
+
+  const { data, error } =
+    await supabaseClient.rpc('get_my_couple_status');
+
+  if (error) {
+    status.textContent = 'Não foi possível consultar a conexão: ' + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    status.textContent = 'Você ainda não criou um espaço casal.';
+    setup.style.display = 'block';
+    createArea.style.display = 'block';
+    inviteArea.style.display = 'none';
+    return;
+  }
+
+  const couple = data[0];
+
+  setup.style.display = 'block';
+
+  if (couple.member_count >= 2) {
+    createArea.style.display = 'none';
+    inviteArea.style.display = 'none';
+
+    status.innerHTML = `
+      <h3>Vocês estão conectados!</h3>
+      <p class="note">Seu espaço casal está ativo.</p>
+      <p class="note">Parceiro: ${escapeHtml(couple.partner_email || 'Conta conectada')}</p>
+    `;
+    return;
+  }
+
+  createArea.style.display = 'none';
+  inviteArea.style.display = 'block';
+
+  status.innerHTML = `
+    <h3>Espaço criado!</h3>
+    <p class="note">Agora falta seu parceiro aceitar o convite para vocês ficarem conectados.</p>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
 function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
