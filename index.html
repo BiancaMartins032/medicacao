@@ -1196,6 +1196,33 @@ const supabaseClient = window.supabase.createClient(
 );
 
 const $ = id => document.getElementById(id);
+  
+function createLocalBackup() {
+  const backup = {
+    app: 'Meus Horários',
+    version: 1,
+    createdAt: new Date().toISOString(),
+    items: load('meus_horarios_items', null),
+    oldMeds: load('remedinho_meds', []),
+    records: load('remedinho_records', {}),
+    theme: load('meus_horarios_theme', 'pink')
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: 'application/json' }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = 'backup-meus-horarios.json';
+  link.click();
+
+  URL.revokeObjectURL(url);
+}
+
 
   
 async function signUpAccount() {
@@ -1617,16 +1644,6 @@ function updateTaskType() {
 $('taskType').addEventListener('change', updateTaskType);
 
   
-function updateTaskType() {
-  const type = $('taskType').value;
-  const sharedFields = $('sharedFields');
-
-  sharedFields.style.display = type === 'shared' ? 'block' : 'none';
-}
-
-$('taskType').addEventListener('change', updateTaskType);
-
-  
 
 function openTaskModal() {
   const modal = document.getElementById('taskModal');
@@ -1679,23 +1696,15 @@ function showPage(id, btn) {
   render();
 }
 
-function showPage(id, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-
-  const page = $(id);
-  if (page) page.classList.add('active');
-
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-
-  if (btn) btn.classList.add('active');
-
-  render();
-}
-
 
 function isScheduled(item, date) {
-  // Preserva o comportamento das tarefas antigas
-  if (item.legacy || item.repeat === 'daily') return true;
+  // Medicamentos antigos continuam aparecendo diariamente
+  if (item.legacy) return true;
+
+  // Tarefas antigas com repetição diária
+  if (item.repeat === 'daily') {
+    return !item.date || date >= item.date;
+  }
 
   if (!item.date) return false;
 
@@ -2705,8 +2714,8 @@ function renderCalendar() {
   details.append(title);
 
   const dayItems = items
-    .filter(item => isScheduled(item, selectedDate))
-    .sort((a,b) => a.time.localeCompare(b.time));
+  .filter(item => isScheduled(item, selectedDate))
+  .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
   if (!dayItems.length) {
     details.innerHTML += '<div class="empty">Nenhum compromisso cadastrado para este dia.</div>';
