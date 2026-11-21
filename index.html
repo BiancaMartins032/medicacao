@@ -802,13 +802,46 @@ function createItemElement(item, date) {
     actions.append(missed);
   }
 
-  if (status !== 'pending') {
+    if (status !== 'pending') {
     const undo = document.createElement('button');
     undo.className = 'secondary';
     undo.textContent = 'Desfazer';
     undo.onclick = () => register(item, date, 'pending');
     actions.append(undo);
   }
+
+  const remove = document.createElement('button');
+  remove.className = 'secondary';
+  remove.textContent = 'Apagar';
+
+  remove.onclick = () => {
+    const confirmed = confirm(
+      `Deseja apagar o compromisso "${item.name}"? Essa ação também removerá seus registros.`
+    );
+
+    if (!confirmed) return;
+
+    const index = items.findIndex(existing => existing.id === item.id);
+
+    if (index !== -1) {
+      items.splice(index, 1);
+    }
+
+    Object.keys(records).forEach(recordDate => {
+      if (records[recordDate]) {
+        delete records[recordDate][item.id];
+
+        if (Object.keys(records[recordDate]).length === 0) {
+          delete records[recordDate];
+        }
+      }
+    });
+
+    save();
+    render();
+  };
+
+  actions.append(remove);
 
   el.append(actions);
   return el;
