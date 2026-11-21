@@ -736,12 +736,20 @@ body[data-theme="black"] .monthly-dot.missed {
   <h2 class="home-title">Rotina de hoje</h2>
 
   <div class="card">
-    <div class="section-title">
-      <h3>O que me propus a fazer</h3>
-      <span id="todayDate" class="note"></span>
-    </div>
-    <div id="todayList"></div>
+  <div class="section-title">
+    <h3>Minhas tarefas</h3>
+    <span id="todayDate" class="note"></span>
   </div>
+  <div id="todayList"></div>
+</div>
+
+<div class="card" id="sharedTasksCard" style="display:none">
+  <div class="section-title">
+    <h3>Nossas tarefas</h3>
+    <span class="note">Compartilhadas</span>
+  </div>
+  <div id="sharedTasksList"></div>
+</div>
 
   <div class="card">
     <h3>O que consegui concluir</h3>
@@ -1600,10 +1608,217 @@ function createItemElement(item, date) {
   return el;
 }
 
+let sharedTasksLoadVersion = 0;
 
+async function loadSharedTasks() {
+  const card = $('sharedTasksCard');
+  const list = $('sharedTasksList');
+
+  const version = ++sharedTasksLoadVersion;
+
+  if (!card || !list) return;
+
+  const { data: userData, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (version !== sharedTasksLoadVersion) return;
+
+  if (userError || !userData.user) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const { data: coupleData, error: coupleError } =
+    await supabaseClient.rpc('get_my_couple_status');
+
+  if (version !== sharedTasksLoadVersion) return;
+
+  if (coupleError || !coupleData || !coupleData.length ||
+      coupleData[0].member_count < 2) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const coupleId = coupleData[0].couple_id;
+  const date = today();
+
+  const { data: tasks, error: tasksError } =
+    await supabaseClient
+      .from('shared_tasks')
+      .select('id, couple_id, title, category, due_date, due_time, repeat_rule, details, points')
+      .eq('couple_id', coupleId);
+
+  if (version !== sharedTasksLoadVersion) return;
+
+  if (tasksError) {
+    card.style.display = 'block';
+    list.textContent = 'Não foi possível carregar as tarefas compartilhadas.';
+    console.error(tasksError);
+    return;
+  }
+
+  const todayTasks = (tasks || []).filter(task => {
+    if (task.repeat_rule === 'daily') {
+      return !task.due_date || task.due_date <= date;
+    }
+
+    if (task.repeat_rule === 'weekly') {
+      if (!task.due_date || task.due_date > date) return false;
+
+      const start = new Date(task.due_date + 'T12:00:00');
+      const current = new Date(date + 'T12:00:00');
+
+      return start.getDay() === current.getDay();
+    }
+
+    return task.due_date === date;
+  });
+
+  todayTasks.sort((a, b) =>
+    (a.due_time || '').localeCompare(b.due_time || '')
+  );
+
+  let recordsByTask = {};
+
+  if (todayTasks.length) {
+    const taskIds = todayTasks.map(task => task.id);
+
+    const { data: taskRecords, error: recordsError } =
+      await supabaseClient
+        .from('shared_task_records')
+        .select('task_id, status')
+        .in('task_id', taskIds)
+        .eq('task_date', date);
+
+    if (version !== sharedTasksLoadVersion) return;
+
+    if (recordsError) {
+      console.error(recordsError);
+    } else {
+      (taskRecords || []).forEach(record => {
+        recordsByTask[record.task_id] = record.status;
+      });
+    }
+  }
+
+  if (version !== sharedTasksLoadVersion) return;
+
+  card.style.display = 'block';
+  list.replaceChildren();
+
+  if (!todayTasks.length) {
+    list.innerHTML =
+      '<div class="empty">Vocês ainda não têm tarefas compartilhadas para hoje.</div>';
+    return;
+  }
+
+  todayTasks.forEach(task => {
+    const status = recordsByTask[task.id] || 'pending';
+
+    const item = document.createElement('div');
+    item.className = 'item';
+
+    const top = document.createElement('div');
+    top.className = 'item-top';
+
+    const info = document.createElement('div');
+
+    const name = document.createElement('strong');
+    name.textContent = task.title;
+
+    const detail = document.createElement('small');
+    detail.textContent =
+      task.category +
+      (task.due_time ? ' · ' + task.due_time.slice(0, 5) : '') +
+      ' · ' + task.points + ' pontos';
+
+    info.append(name, detail);
+
+    const badge = document.createElement('span');
+    badge.className =
+      'status' +
+      (status === 'done' ? ' done' :
+       status === 'missed' ? ' missed' : '');
+
+    badge.textContent =
+      status === 'done' ? 'Concluída' :
+      status === 'missed' ? 'Não realizada' : 'Pendente';
+
+    top.append(info, badge);
+    item.append(top);
+
+    if (task.details) {
+      const description = document.createElement('small');
+      description.textContent = task.details;
+      item.append(description);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    if (status !== 'done') {
+      const doneButton = document.createElement('button');
+      doneButton.textContent = 'Concluir';
+      doneButton.onclick = () =>
+        updateSharedTaskStatus(task, 'done');
+      actions.append(doneButton);
+    }
+
+    if (status !== 'missed') {
+      const missedButton = document.createElement('button');
+      missedButton.className = 'secondary';
+      missedButton.textContent = 'Não realizada';
+      missedButton.onclick = () =>
+        updateSharedTaskStatus(task, 'missed');
+      actions.append(missedButton);
+    }
+
+    if (status !== 'pending') {
+      const undoButton = document.createElement('button');
+      undoButton.className = 'secondary';
+      undoButton.textContent = 'Desfazer';
+      undoButton.onclick = () =>
+        updateSharedTaskStatus(task, 'pending');
+      actions.append(undoButton);
+    }
+
+    item.append(actions);
+    list.append(item);
+  });
+}
+
+async function updateSharedTaskStatus(task, status) {
+  const { data: userData, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (userError || !userData.user) {
+    alert('Entre na sua conta para atualizar a tarefa.');
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from('shared_task_records')
+    .upsert({
+      task_id: task.id,
+      task_date: today(),
+      status: status,
+      updated_by: userData.user.id,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'task_id,task_date'
+    });
+
+  if (error) {
+    alert('Não foi possível atualizar: ' + error.message);
+    return;
+  }
+
+  await loadSharedTasks();
+}
 
 function renderHome() {
   const date = today();
+  loadSharedTasks();
 
   $('todayDate').textContent = new Date().toLocaleDateString('pt-BR');
 
