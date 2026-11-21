@@ -1166,6 +1166,47 @@ async function acceptCoupleInvite(inviteId) {
 
 
 
+function openMoreSection(section) {
+  const sections = [
+    'account',
+    'couple',
+    'appearance',
+    'backup',
+    'about'
+  ];
+
+  $('moreMenu').style.display = 'none';
+
+  sections.forEach(name => {
+    $('more' + name.charAt(0).toUpperCase() + name.slice(1))
+      .style.display = 'none';
+  });
+
+  if (!sections.includes(section)) return;
+
+  const selected = 'more' +
+    section.charAt(0).toUpperCase() + section.slice(1);
+
+  $(selected).style.display = 'block';
+}
+
+function showMoreMenu() {
+  const sections = [
+    'account',
+    'couple',
+    'appearance',
+    'backup',
+    'about'
+  ];
+
+  sections.forEach(name => {
+    $('more' + name.charAt(0).toUpperCase() + name.slice(1))
+      .style.display = 'none';
+  });
+
+  $('moreMenu').style.display = 'block';
+}
+
 
 function today() {
   const d = new Date();
