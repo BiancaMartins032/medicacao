@@ -722,6 +722,45 @@ body[data-theme="black"] .monthly-dot.missed {
   border-color: var(--border);
 }
 
+  /* Botão flutuante para adicionar tarefas */
+.task-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 90px;
+  width: 58px;
+  height: 58px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary, #d98ac7);
+  color: white;
+  font-size: 32px;
+  cursor: pointer;
+  z-index: 15;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+
+/* Fundo da janela de tarefas */
+.task-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0,0,0,.48);
+  padding: 18px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Conteúdo da janela */
+.task-modal-content {
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--card, #fff);
+  border-radius: 20px;
+  padding: 20px;
+}
 </style>
 </head>
 
@@ -846,9 +885,19 @@ body[data-theme="black"] .monthly-dot.missed {
 
 </section>
 
-<section id="schedulePage" class="page">
-  <div class="card">
-    <h3>Adicionar compromisso</h3>
+
+<div id="taskModal" class="task-modal">
+  <div class="task-modal-content">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+      <h3 id="taskModalTitle">Adicionar tarefa</h3>
+      <button
+        type="button"
+        class="secondary"
+        onclick="closeTaskModal()"
+        aria-label="Fechar"
+      >✕</button>
+    </div>
 
     <form id="itemForm">
       <label for="itemName">O que você precisa fazer?</label>
@@ -884,24 +933,28 @@ body[data-theme="black"] .monthly-dot.missed {
       <textarea id="itemDetails" maxlength="300"
         placeholder="Informações adicionais..."></textarea>
 
-      <button type="submit" id="saveItemButton">Salvar compromisso</button>
-<button
-  type="button"
-  class="secondary"
-  id="cancelEditButton"
-  onclick="cancelEdit()"
-  style="display:none; margin-left:6px;"
->
-  Cancelar edição
-</button>
-    </form>
-  </div>
+      <button type="submit" id="saveItemButton">
+        Salvar tarefa
+      </button>
 
-  <div class="card">
-    <h3>Meus compromissos</h3>
-    <div id="itemList"></div>
+      <button
+        type="button"
+        class="secondary"
+        id="cancelEditButton"
+        onclick="cancelEdit()"
+        style="display:none; margin-left:6px;"
+      >
+        Cancelar edição
+      </button>
+    </form>
+
+    <div class="card" style="margin-top:18px;">
+      <h3>Tarefas cadastradas</h3>
+      <div id="itemList"></div>
+    </div>
+
   </div>
-</section>
+</div>
 
 
 
@@ -1048,7 +1101,13 @@ body[data-theme="black"] .monthly-dot.missed {
 
 </section>
 
-
+<button
+  class="task-fab"
+  type="button"
+  onclick="openTaskModal()"
+  aria-label="Adicionar tarefa">
+  +
+</button>
 
 </main>
 
@@ -1481,12 +1540,63 @@ function applyTheme() {
 }
 
 
+function openTaskModal() {
+  const modal = document.getElementById('taskModal');
+
+  if (!modal) return;
+
+  if (editingItemId === null) {
+    $('itemForm').reset();
+    $('itemDate').value = today();
+    $('saveItemButton').textContent = 'Salvar tarefa';
+    $('cancelEditButton').style.display = 'none';
+    $('taskModalTitle').textContent = 'Adicionar tarefa';
+  }
+
+  modal.style.display = 'flex';
+
+  if (typeof renderItems === 'function') {
+    renderItems();
+  }
+}
+
+
+function closeTaskModal() {
+  const modal = document.getElementById('taskModal');
+
+  if (!modal) return;
+
+  modal.style.display = 'none';
+}
+
+document.getElementById('taskModal')?.addEventListener('click', function(event) {
+  if (event.target === this) {
+    closeTaskModal();
+  }
+});
+
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  $(id).classList.add('active');
+
+  const page = $(id);
+  if (page) page.classList.add('active');
 
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+
+  if (btn) btn.classList.add('active');
+
+  render();
+}
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  const page = $(id);
+  if (page) page.classList.add('active');
+
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+
+  if (btn) btn.classList.add('active');
 
   render();
 }
@@ -2006,6 +2116,7 @@ chartCenter.style.color = chartColors.text;
 
 
 
+
 $('itemForm').addEventListener('submit', (e) => {
   e.preventDefault();
 
@@ -2026,20 +2137,21 @@ $('itemForm').addEventListener('submit', (e) => {
       item.legacy = false;
     }
 
-    alert('Compromisso atualizado!');
+    alert('Tarefa atualizada!');
   } else {
     items.push({
       id: crypto.randomUUID(),
       ...itemData
     });
 
-    alert('Compromisso salvo!');
+    alert('Tarefa salva!');
   }
 
   save();
   cancelEdit();
   render();
 });
+
 
 
 function editItem(id) {
@@ -2051,20 +2163,20 @@ function editItem(id) {
   $('itemName').value = item.name;
   $('category').value = item.category;
   $('itemDate').value = item.date || today();
-  $('itemTime').value = item.time;
+  $('itemTime').value = item.time || '';
   $('repeat').value = item.repeat || 'none';
   $('itemDetails').value = item.details || '';
 
   $('saveItemButton').textContent = 'Salvar alterações';
   $('cancelEditButton').style.display = 'inline-block';
 
-  showPage(
-    'schedulePage',
-    document.querySelectorAll('nav button')[2]
-  );
+  $('taskModalTitle').textContent = 'Editar tarefa';
+
+  openTaskModal();
 
   $('itemName').focus();
 }
+
 
 function cancelEdit() {
   editingItemId = null;
@@ -2072,9 +2184,13 @@ function cancelEdit() {
   $('itemForm').reset();
   $('itemDate').value = today();
 
-  $('saveItemButton').textContent = 'Salvar compromisso';
+  $('saveItemButton').textContent = 'Salvar tarefa';
   $('cancelEditButton').style.display = 'none';
+  $('taskModalTitle').textContent = 'Adicionar tarefa';
+
+  closeTaskModal();
 }
+
 
 
 
