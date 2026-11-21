@@ -1194,6 +1194,7 @@ async function sendCoupleInvite() {
     'Convite registrado! Seu parceiro precisará aceitar para entrar no espaço.';
 }
   
+
 async function loadCoupleInvites() {
   const container = $('receivedInvites');
   const message = $('receivedInviteMessage');
@@ -1209,14 +1210,9 @@ async function loadCoupleInvites() {
     return;
   }
 
-  const email = userData.user.email.toLowerCase();
-
-  const { data, error } = await supabaseClient
-    .from('couple_invites')
-    .select('id, created_at, invited_by')
-    .eq('invited_email', email)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false });
+  const { data, error } = await supabaseClient.rpc(
+    'get_my_pending_couple_invites'
+  );
 
   if (error) {
     message.textContent = 'Erro ao buscar convites: ' + error.message;
@@ -1230,33 +1226,34 @@ async function loadCoupleInvites() {
 
   message.textContent = 'Você recebeu ' + data.length + ' convite(s).';
 
-  
-data.forEach(invite => {
-  const card = document.createElement('div');
-  const sender = document.createElement('p');
-  const date = document.createElement('p');
-  const button = document.createElement('button');
+  data.forEach(invite => {
+    const card = document.createElement('div');
+    const sender = document.createElement('p');
+    const date = document.createElement('p');
+    const button = document.createElement('button');
 
-  card.className = 'invite-item';
+    card.className = 'invite-item';
 
-  sender.className = 'note';
-  sender.textContent = 'Enviado por: ' + invite.invited_by;
+    sender.className = 'note';
+    sender.textContent = 'Enviado por: ' +
+      (invite.sender_email || 'E-mail não disponível');
 
-  date.className = 'note';
-  date.textContent = 'Data: ' +
-    new Date(invite.created_at).toLocaleDateString('pt-BR');
+    date.className = 'note';
+    date.textContent = 'Data: ' +
+      new Date(invite.created_at).toLocaleDateString('pt-BR');
 
-  button.type = 'button';
-  button.textContent = 'Aceitar convite';
-  button.onclick = () => acceptCoupleInvite(invite.id);
+    button.type = 'button';
+    button.textContent = 'Aceitar convite';
+    button.onclick = () => acceptCoupleInvite(invite.invite_id);
 
-  card.appendChild(sender);
-  card.appendChild(date);
-  card.appendChild(button);
+    card.appendChild(sender);
+    card.appendChild(date);
+    card.appendChild(button);
 
-  container.appendChild(card);
-});
+    container.appendChild(card);
+  });
 }
+
 
 async function acceptCoupleInvite(inviteId) {
   const message = $('receivedInviteMessage');
