@@ -460,48 +460,88 @@ body[data-theme="black"] .dot.pending {
 body[data-theme="black"] .dot.missed {
   background: #C4C4C4;
 }
-  .monthly-chart {
+  
+.monthly-legend {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
   flex-wrap: wrap;
-  margin-top: 20px;
+  gap: 12px;
+  margin: 16px 0;
 }
 
-.monthly-circle {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-.monthly-center {
-  width: 112px;
-  height: 112px;
-  border-radius: 50%;
+.monthly-legend span {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-}
-
-.monthly-center strong {
-  font-size: 27px;
-}
-
-.monthly-center small {
+  gap: 6px;
   font-size: 12px;
 }
 
-.monthly-legend {
+.monthly-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.monthly-dot.done { background: #D98AC7; }
+.monthly-dot.pending { background: #B78AA8; }
+.monthly-dot.missed { background: #E9C8D8; }
+
+body[data-theme="black"] .monthly-dot.done { background: #555555; }
+body[data-theme="black"] .monthly-dot.pending { background: #888888; }
+body[data-theme="black"] .monthly-dot.missed { background: #C4C4C4; }
+
+.monthly-columns {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 12px 4px 8px;
+}
+
+.monthly-column-item {
+  flex: 0 0 46px;
   display: flex;
   flex-direction: column;
-  gap: 13px;
-  min-width: 145px;
+  align-items: center;
+  gap: 6px;
 }
+
+.monthly-percent {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.monthly-bar {
+  width: 26px;
+  height: 130px;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.monthly-bar-segment {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.monthly-bar-segment.done { background: #D98AC7; }
+.monthly-bar-segment.pending { background: #B78AA8; }
+.monthly-bar-segment.missed { background: #E9C8D8; }
+
+body[data-theme="black"] .monthly-bar-segment.done { background: #555555; }
+body[data-theme="black"] .monthly-bar-segment.pending { background: #888888; }
+body[data-theme="black"] .monthly-bar-segment.missed { background: #C4C4C4; }
+
+.monthly-month-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 
 .monthly-legend > div {
   display: flex;
@@ -624,40 +664,17 @@ body[data-theme="black"] .monthly-dot.missed {
   </div>
 
   <div class="card monthly-summary">
-    <h3>Resumo do mês</h3>
+  <h3>Minha evolução mensal</h3>
+  <p class="note">Compare seu desempenho nos últimos 12 meses.</p>
 
-    <label for="monthlyMonth">Consultar mês</label>
-    <input type="month" id="monthlyMonth">
-
-    <div class="monthly-chart">
-      <div class="monthly-circle" id="monthlyChart">
-        <div class="monthly-center">
-          <strong id="monthlyPercentage">0%</strong>
-          <small>concluído</small>
-        </div>
-      </div>
-
-      <div class="monthly-legend">
-        <div>
-          <span class="monthly-dot done"></span>
-          Concluídos
-          <strong id="monthlyDone">0</strong>
-        </div>
-
-        <div>
-          <span class="monthly-dot pending"></span>
-          Pendentes
-          <strong id="monthlyPending">0</strong>
-        </div>
-
-        <div>
-          <span class="monthly-dot missed"></span>
-          Não realizados
-          <strong id="monthlyMissed">0</strong>
-        </div>
-      </div>
-    </div>
+  <div class="monthly-legend">
+    <span><i class="monthly-dot done"></i> Concluídos</span>
+    <span><i class="monthly-dot pending"></i> Pendentes</span>
+    <span><i class="monthly-dot missed"></i> Não realizados</span>
   </div>
+
+  <div id="monthlyChart" class="monthly-columns"></div>
+</div>
 </section>
 
 <section id="schedulePage" class="page">
@@ -1301,74 +1318,94 @@ function renderItems() {
   });
 }
 
+
 function renderMonthlySummary() {
-  const monthValue = $('monthlyMonth').value;
-  if (!monthValue) return;
+  const chart = $('monthlyChart');
+  if (!chart) return;
 
-  const [year, month] = monthValue.split('-').map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
+  chart.innerHTML = '';
 
-  let done = 0;
-  let pending = 0;
-  let missed = 0;
+  const now = new Date();
+  const months = [];
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    items.forEach(item => {
-      if (!isScheduled(item, date)) return;
+    let done = 0;
+    let pending = 0;
+    let missed = 0;
 
-      const status = statusFor(item, date);
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey =
+        `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-      if (status === 'done') done++;
-      else if (status === 'missed') missed++;
-      else pending++;
+      items.forEach(item => {
+        if (!isScheduled(item, dateKey)) return;
+
+        const status = statusFor(item, dateKey);
+
+        if (status === 'done') done++;
+        else if (status === 'missed') missed++;
+        else pending++;
+      });
+    }
+
+    months.push({
+      date,
+      done,
+      pending,
+      missed,
+      total: done + pending + missed
     });
   }
 
-  const total = done + pending + missed;
-  const percentage = total ? Math.round((done / total) * 100) : 0;
+  const maxTotal = Math.max(1, ...months.map(month => month.total));
 
-  $('monthlyPercentage').textContent = `${percentage}%`;
-  $('monthlyDone').textContent = done;
-  $('monthlyPending').textContent = pending;
-  $('monthlyMissed').textContent = missed;
+  months.forEach(month => {
+    const percentage = month.total
+      ? Math.round((month.done / month.total) * 100)
+      : 0;
 
-  const doneAngle = total ? (done / total) * 360 : 0;
-  const pendingAngle = total ? (pending / total) * 360 : 0;
+    const column = document.createElement('div');
+    column.className = 'monthly-column-item';
 
-  const black = document.body.dataset.theme === 'black';
+    column.title =
+      `Concluídos: ${month.done} | Pendentes: ${month.pending} | Não realizados: ${month.missed}`;
 
-  const colors = black
-    ? {
-        done: '#555555',
-        pending: '#888888',
-        missed: '#C4C4C4',
-        empty: '#383838',
-        center: '#242424',
-        text: '#F2F2F2'
-      }
-    : {
-        done: '#D98AC7',
-        pending: '#B78AA8',
-        missed: '#E9C8D8',
-        empty: '#F3E8EF',
-        center: '#FFFFFF',
-        text: '#343746'
-      };
+    const percent = document.createElement('div');
+    percent.className = 'monthly-percent';
+    percent.textContent = month.total ? `${percentage}%` : '—';
 
-  $('monthlyChart').style.background = total
-    ? `conic-gradient(
-        ${colors.done} 0deg ${doneAngle}deg,
-        ${colors.pending} ${doneAngle}deg ${doneAngle + pendingAngle}deg,
-        ${colors.missed} ${doneAngle + pendingAngle}deg 360deg
-      )`
-    : colors.empty;
+    const bar = document.createElement('div');
+    bar.className = 'monthly-bar';
 
-  const center = document.querySelector('.monthly-center');
-  center.style.background = colors.center;
-  center.style.color = colors.text;
+    [
+      { value: month.done, type: 'done' },
+      { value: month.pending, type: 'pending' },
+      { value: month.missed, type: 'missed' }
+    ].forEach(segment => {
+      if (!segment.value) return;
+
+      const part = document.createElement('div');
+      part.className = `monthly-bar-segment ${segment.type}`;
+      part.style.height = `${(segment.value / maxTotal) * 100}%`;
+      bar.append(part);
+    });
+
+    const label = document.createElement('div');
+    label.className = 'monthly-month-label';
+    label.textContent = new Intl.DateTimeFormat('pt-BR', {
+      month: 'short'
+    }).format(month.date).replace('.', '');
+
+    column.append(percent, bar, label);
+    chart.append(column);
+  });
 }
+
 function changeMonth(n) {
   viewDate.setMonth(viewDate.getMonth() + n);
   renderCalendar();
@@ -1377,18 +1414,7 @@ function changeMonth(n) {
 function renderCalendar() {
   const y = viewDate.getFullYear();
   const mo = viewDate.getMonth();
-    const monthlyMonth = $('monthlyMonth');
-
-  monthlyMonth.value =
-    `${y}-${String(mo + 1).padStart(2, '0')}`;
-
-  monthlyMonth.onchange = () => {
-    const [year, month] = monthlyMonth.value.split('-').map(Number);
-    viewDate = new Date(year, month - 1, 1);
-    renderCalendar();
-  };
-
-  renderMonthlySummary();
+    renderMonthlySummary();
 
   $('monthName').textContent =
     new Intl.DateTimeFormat('pt-BR', {month:'long', year:'numeric'}).format(viewDate);
