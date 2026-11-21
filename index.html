@@ -1358,10 +1358,12 @@ async function signInAccount() {
 }
 
   
+
 async function updateAccountStatus() {
   const message = $('accountMessage');
   const emailInput = $('accountEmail');
   const passwordInput = $('accountPassword');
+
   const { data, error } = await supabaseClient.auth.getUser();
 
   if (error || !data.user) {
@@ -1371,8 +1373,9 @@ async function updateAccountStatus() {
 
   emailInput.value = data.user.email || '';
   passwordInput.value = '';
-
   message.textContent = 'Conectado como ' + data.user.email;
+
+  await loadIndividualDataFromSupabase();
 }
 
 async function signOutAccount() {
