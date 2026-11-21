@@ -1347,17 +1347,29 @@ function renderItems() {
 }
 
 
+
 function renderMonthlySummary() {
   const chart = $('monthlyChart');
-  if (!chart) return;
+  const details = $('monthlyDetails');
+  const averageLine = $('monthlyAverageLine');
+  const averageLabel = $('monthlyAverageLabel');
+
+  if (!chart || !details) return;
 
   chart.innerHTML = '';
+  details.textContent = 'Toque em uma coluna para consultar os resultados do mês.';
 
+  const start = new Date(2026, 10, 1);
   const now = new Date();
+  const lastMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
   const months = [];
 
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  for (
+    let date = new Date(start);
+    date <= lastMonth;
+    date.setMonth(date.getMonth() + 1)
+  ) {
     const year = date.getFullYear();
     const month = date.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -1381,58 +1393,95 @@ function renderMonthlySummary() {
       });
     }
 
+    const total = done + pending + missed;
+
     months.push({
-      date,
+      year,
+      month,
       done,
       pending,
       missed,
-      total: done + pending + missed
+      total,
+      percentage: total ? Math.round((done / total) * 100) : null
     });
   }
 
-  const maxTotal = Math.max(1, ...months.map(month => month.total));
+  const monthsWithData = months.filter(month => month.total > 0);
+
+  const average = monthsWithData.length
+    ? Math.round(
+        monthsWithData.reduce((sum, month) => sum + month.percentage, 0) /
+        monthsWithData.length
+      )
+    : null;
+
+  if (averageLine && averageLabel) {
+    averageLine.style.display = average === null ? 'none' : 'block';
+    averageLabel.style.display = average === null ? 'none' : 'block';
+
+    if (average !== null) {
+      averageLine.style.bottom = `${average}%`;
+      averageLabel.style.bottom = `${average}%`;
+      averageLabel.textContent = `Média: ${average}%`;
+    }
+  }
 
   months.forEach(month => {
-    const percentage = month.total
-      ? Math.round((month.done / month.total) * 100)
-      : 0;
-
     const column = document.createElement('div');
     column.className = 'monthly-column-item';
 
-    column.title =
-      `Concluídos: ${month.done} | Pendentes: ${month.pending} | Não realizados: ${month.missed}`;
-
     const percent = document.createElement('div');
     percent.className = 'monthly-percent';
-    percent.textContent = month.total ? `${percentage}%` : '—';
+    percent.textContent =
+      month.percentage === null ? '—' : `${month.percentage}%`;
+
+    const barArea = document.createElement('div');
+    barArea.className = 'monthly-bar-area';
 
     const bar = document.createElement('div');
     bar.className = 'monthly-bar';
 
-    [
-      { value: month.done, type: 'done' },
-      { value: month.pending, type: 'pending' },
-      { value: month.missed, type: 'missed' }
-    ].forEach(segment => {
-      if (!segment.value) return;
+    if (month.percentage !== null) {
+      bar.style.height = `${month.percentage}%`;
+    }
 
-      const part = document.createElement('div');
-      part.className = `monthly-bar-segment ${segment.type}`;
-      part.style.height = `${(segment.value / maxTotal) * 100}%`;
-      bar.append(part);
-    });
+    column.title = `${month.month + 1}/${month.year}`;
 
     const label = document.createElement('div');
     label.className = 'monthly-month-label';
     label.textContent = new Intl.DateTimeFormat('pt-BR', {
-      month: 'short'
-    }).format(month.date).replace('.', '');
+      month: 'short',
+      year: '2-digit'
+    }).format(new Date(month.year, month.month, 1)).replace('.', '');
 
-    column.append(percent, bar, label);
+    barArea.append(bar);
+    column.append(percent, barArea, label);
+
+    column.onclick = () => {
+      details.innerHTML = '';
+
+      const heading = document.createElement('strong');
+      heading.textContent = new Intl.DateTimeFormat('pt-BR', {
+        month: 'long',
+        year: 'numeric'
+      }).format(new Date(month.year, month.month, 1));
+
+      const result = document.createElement('p');
+      result.textContent = month.total
+        ? `${month.percentage}% concluídos`
+        : 'Nenhum compromisso registrado neste mês.';
+
+      const counts = document.createElement('p');
+      counts.textContent =
+        `Concluídos: ${month.done} · Pendentes: ${month.pending} · Não realizados: ${month.missed}`;
+
+      details.append(heading, result, counts);
+    };
+
     chart.append(column);
   });
 }
+
 
 function changeMonth(n) {
   viewDate.setMonth(viewDate.getMonth() + n);
