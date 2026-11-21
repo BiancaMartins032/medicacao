@@ -987,6 +987,30 @@ async function signOutAccount() {
   $('accountPassword').value = '';
   $('accountMessage').textContent = 'Você saiu da sua conta.';
 }
+  
+async function createCoupleSpace() {
+  const message = $('coupleMessage');
+
+  message.textContent = 'Criando espaço...';
+
+  const { data: userData, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (userError || !userData.user) {
+    message.textContent = 'Entre na sua conta primeiro.';
+    return;
+  }
+
+  const { data, error } = await supabaseClient.rpc('create_couple');
+
+  if (error) {
+    message.textContent = 'Não foi possível criar o espaço: ' + error.message;
+    return;
+  }
+
+  message.textContent = 'Espaço do casal criado com sucesso!';
+}
+
 
 function today() {
   const d = new Date();
