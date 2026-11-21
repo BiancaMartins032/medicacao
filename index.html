@@ -891,6 +891,63 @@ const supabaseClient = window.supabase.createClient(
 
 const $ = id => document.getElementById(id);
 
+  
+async function signUpAccount() {
+  const email = $('accountEmail').value.trim();
+  const password = $('accountPassword').value;
+  const message = $('accountMessage');
+
+  if (!email || !password) {
+    message.textContent = 'Informe seu e-mail e sua senha.';
+    return;
+  }
+
+  if (password.length < 6) {
+    message.textContent = 'A senha precisa ter pelo menos 6 caracteres.';
+    return;
+  }
+
+  message.textContent = 'Criando sua conta...';
+
+  const { error } = await supabaseClient.auth.signUp({
+    email,
+    password
+  });
+
+  if (error) {
+    message.textContent = 'Erro: ' + error.message;
+    return;
+  }
+
+  message.textContent =
+    'Cadastro iniciado! Verifique seu e-mail para confirmar a conta.';
+}
+
+async function signInAccount() {
+  const email = $('accountEmail').value.trim();
+  const password = $('accountPassword').value;
+  const message = $('accountMessage');
+
+  if (!email || !password) {
+    message.textContent = 'Informe seu e-mail e sua senha.';
+    return;
+  }
+
+  message.textContent = 'Entrando...';
+
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    message.textContent = 'Erro: ' + error.message;
+    return;
+  }
+
+  message.textContent = 'Login realizado com sucesso!';
+}
+
 function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
