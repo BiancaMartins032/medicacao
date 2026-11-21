@@ -843,6 +843,23 @@ body[data-theme="black"] .monthly-dot.missed {
     <p class="note">Guarde o arquivo de backup em um local seguro.</p>
   </div>
 
+ 
+  <div class="card">
+    <h3>Conta e conexão</h3>
+    <p class="note">Entre na sua conta para conectar seus compromissos compartilhados com seu parceiro.</p>
+
+    <label for="accountEmail">E-mail</label>
+    <input id="accountEmail" type="email" placeholder="seu@email.com" autocomplete="email">
+
+    <label for="accountPassword">Senha</label>
+    <input id="accountPassword" type="password" placeholder="Sua senha" autocomplete="current-password">
+
+    <button type="button" onclick="signUpAccount()">Criar conta</button>
+    <button type="button" class="secondary" onclick="signInAccount()">Entrar</button>
+
+    <p id="accountMessage" class="note"></p>
+  </div>
+
   <div class="card">
     <h3>Sobre os lembretes</h3>
     <p class="note">
