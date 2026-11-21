@@ -6,8 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meus Horários</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#171719" id="themeColor">
-
+<meta name="color-scheme" content="light dark">
 <style>
 :root {
   --bg: #F7F7F9;
@@ -308,6 +307,13 @@ nav button.active {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
+}
+  :root {
+  color-scheme: light;
+}
+
+body[data-theme="black"] {
+  color-scheme: dark;
 }
 </style>
 </head>
