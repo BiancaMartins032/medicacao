@@ -490,22 +490,31 @@ function save() {
   localStorage.setItem('remedinho_records', JSON.stringify(records));
 }
 
+
 function setTheme(theme) {
   if (theme !== 'pink' && theme !== 'black') return;
 
-  localStorage.setItem('meus_horarios_theme', JSON.stringify(theme));
-
+  localStorage.setItem('meus_horarios_theme', theme);
   applyTheme();
 }
+
 function applyTheme() {
-  const theme = load('meus_horarios_theme', 'pink');
+  const savedTheme = localStorage.getItem('meus_horarios_theme');
+
+  const theme =
+    savedTheme === 'black' || savedTheme === '"black"'
+      ? 'black'
+      : 'pink';
+
   document.body.dataset.theme = theme;
 
   $('pinkTheme').classList.toggle('active', theme === 'pink');
   $('blackTheme').classList.toggle('active', theme === 'black');
 
-  $('themeColor').content = theme === 'black' ? '#171719' : '#D96F9C';
+  $('themeColor').content =
+    theme === 'black' ? '#171719' : '#D96F9C';
 }
+
 
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
