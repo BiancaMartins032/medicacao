@@ -339,6 +339,15 @@ body[data-theme="black"] {
     <div id="todayList"></div>
   </div>
 
+    <div class="card welcome">
+    <img
+      id="catReaction"
+      src="./gatinho-esperando-rosa.jpg"
+      alt="Gatinho esperando"
+      style="width:100%; max-width:340px; display:block; margin:auto; border-radius:14px;"
+    >
+  </div>
+
   <div class="card">
     <h3>Resumo do dia</h3>
     <div id="progress"></div>
@@ -499,6 +508,7 @@ function setTheme(theme) {
 
   localStorage.setItem('meus_horarios_theme', theme);
   applyTheme();
+  renderHome();
 }
 
 function applyTheme() {
@@ -619,6 +629,23 @@ function createItemElement(item, date) {
 
 function renderHome() {
   $('todayDate').textContent = new Date().toLocaleDateString('pt-BR');
+    const theme = document.body.dataset.theme === 'black' ? 'preto' : 'rosa';
+
+  const cat = $('catReaction');
+
+  const todayItemsForCat = items.filter(item => isScheduled(item, today()));
+
+  const hasMissed = todayItemsForCat.some(
+    item => statusFor(item, today()) === 'missed'
+  );
+
+  const allDone = todayItemsForCat.length > 0 &&
+    todayItemsForCat.every(item => statusFor(item, today()) === 'done');
+
+  const reaction = hasMissed ? 'tristinho' : allDone ? 'feliz' : 'esperando';
+
+  cat.src = `./gatinho-${reaction}-${theme}.jpg`;
+  cat.alt = `Gatinho ${reaction}`;
 
   const list = $('todayList');
   list.innerHTML = '';
