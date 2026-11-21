@@ -960,11 +960,25 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
+
 function render() {
-  renderHome();
-  renderItems();
-  renderCalendar();
+  const activePage = document.querySelector('.page.active');
+
+  if (!activePage) return;
+
+  if (activePage.id === 'home') {
+    renderHome();
+  }
+
+  if (activePage.id === 'schedulePage') {
+    renderItems();
+  }
+
+  if (activePage.id === 'calendarPage') {
+    renderCalendar();
+  }
 }
+
 
 $('itemDate').value = today();
 applyTheme();
