@@ -1496,9 +1496,13 @@ function renderMonthlySummary() {
     bar.className = 'monthly-bar';
 
     if (month.percentage !== null) {
-      bar.style.height = `${month.percentage}%`;
-    }
+  bar.style.height = `${month.percentage}%`;
 
+  percent.style.bottom =
+    `calc(${Math.min(month.percentage, 92)}% + 4px)`;
+} else {
+  percent.style.bottom = '4px';
+}
     column.title = `${month.month + 1}/${month.year}`;
 
     const label = document.createElement('div');
