@@ -761,6 +761,50 @@ body[data-theme="black"] .monthly-dot.missed {
   border-radius: 20px;
   padding: 20px;
 }
+  
+.weekdays-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+
+.weekdays-grid label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.weekdays-grid input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.weekdays-grid span {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #F0EDF2;
+  color: #55515B;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.weekdays-grid input:checked + span {
+  background: #D96F9C;
+  color: white;
+}
+
+.weekdays-grid input:focus-visible + span {
+  outline: 2px solid #5267D8;
+  outline-offset: 3px;
+}
+
 </style>
 </head>
 
@@ -977,19 +1021,19 @@ body[data-theme="black"] .monthly-dot.missed {
       <input id="itemTime" type="time" required>
 
       
-<label>Em quais dias essa tarefa deve ser realizada?</label>
+
+<label>Em quais dias?</label>
 
 <div id="taskWeekdays" class="weekdays-grid">
-
-  <label><input type="checkbox" value="1"> Segunda-feira</label>
-  <label><input type="checkbox" value="2"> Terça-feira</label>
-  <label><input type="checkbox" value="3"> Quarta-feira</label>
-  <label><input type="checkbox" value="4"> Quinta-feira</label>
-  <label><input type="checkbox" value="5"> Sexta-feira</label>
-  <label><input type="checkbox" value="6"> Sábado</label>
-  <label><input type="checkbox" value="0"> Domingo</label>
-
+  <label title="Domingo"><input type="checkbox" value="0"><span>D</span></label>
+  <label title="Segunda-feira"><input type="checkbox" value="1"><span>S</span></label>
+  <label title="Terça-feira"><input type="checkbox" value="2"><span>T</span></label>
+  <label title="Quarta-feira"><input type="checkbox" value="3"><span>Q</span></label>
+  <label title="Quinta-feira"><input type="checkbox" value="4"><span>Q</span></label>
+  <label title="Sexta-feira"><input type="checkbox" value="5"><span>S</span></label>
+  <label title="Sábado"><input type="checkbox" value="6"><span>S</span></label>
 </div>
+
 
 <p style="font-size:12px; color:var(--muted);">
   Selecione um ou mais dias. A tarefa será cadastrada uma única vez e aparecerá nos dias escolhidos.
