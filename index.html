@@ -1677,6 +1677,236 @@ function save() {
   localStorage.setItem('meus_horarios_items', JSON.stringify(items));
   localStorage.setItem('remedinho_records', JSON.stringify(records));
 }
+  
+// Fila local de sincronização das tarefas individuais
+function getIndividualSyncQueue() {
+  try {
+    return JSON.parse(
+      localStorage.getItem('individual_sync_queue') || '[]'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function setIndividualSyncQueue(queue) {
+  localStorage.setItem(
+    'individual_sync_queue',
+    JSON.stringify(queue)
+  );
+}
+
+// Identifica a conta conectada sem precisar consultar o servidor
+async function getCurrentUserId() {
+  const { data, error } = await supabaseClient.auth.getSession();
+
+  if (error || !data.session?.user) return null;
+
+  return data.session.user.id;
+}
+
+// Converte uma tarefa do aplicativo para o formato do Supabase
+function individualTaskToCloud(item, userId) {
+  const weekdays = Array.isArray(item.weekdays)
+    ? item.weekdays
+    : [];
+
+  return {
+    id: String(item.id),
+    user_id: userId,
+    name: item.name,
+    category: item.category || '',
+    start_date: item.date || null,
+    task_time: item.time || null,
+    weekdays,
+    details: item.details || '',
+    legacy: Boolean(item.legacy),
+    repeat_rule: item.repeat || (
+      weekdays.length === 7 ? 'daily' : 'weekdays'
+    ),
+    updated_at: new Date().toISOString()
+  };
+}
+
+// Adiciona ou atualiza uma operação na fila
+function queueIndividualSync(operation) {
+  const queue = getIndividualSyncQueue();
+
+  const sameOperation = entry =>
+    entry.type === operation.type &&
+    entry.userId === operation.userId &&
+    (
+      operation.type === 'task' || operation.type === 'delete'
+        ? entry.taskId === operation.taskId
+        : entry.taskId === operation.taskId &&
+          entry.date === operation.date
+    );
+
+  const filtered = queue.filter(entry => !sameOperation(entry));
+
+  filtered.push(operation);
+
+  setIndividualSyncQueue(filtered);
+}
+
+// Envia uma tarefa para a nuvem
+async function syncIndividualTask(item) {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    console.log('Tarefa mantida localmente: nenhuma conta conectada.');
+    return;
+  }
+
+  const operation = {
+    type: 'task',
+    userId,
+    taskId: String(item.id),
+    payload: individualTaskToCloud(item, userId)
+  };
+
+  queueIndividualSync(operation);
+  await processIndividualSyncQueue();
+}
+
+// Envia uma alteração de histórico para a nuvem
+async function syncIndividualRecord(item, date, status) {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    console.log('Histórico mantido localmente: nenhuma conta conectada.');
+    return;
+  }
+
+  const operation = {
+    type: 'record',
+    userId,
+    taskId: String(item.id),
+    date,
+    payload: {
+      user_id: userId,
+      task_id: String(item.id),
+      record_date: date,
+      status
+    }
+  };
+
+  queueIndividualSync(operation);
+  await processIndividualSyncQueue();
+}
+
+// Envia a exclusão de uma tarefa para a nuvem
+async function syncIndividualDelete(taskId) {
+  const userId = await getCurrentUserId();
+
+  if (!userId) {
+    console.log('Exclusão mantida localmente: nenhuma conta conectada.');
+    return;
+  }
+
+  const queue = getIndividualSyncQueue();
+
+  const filtered = queue.filter(entry =>
+    !(
+      entry.userId === userId &&
+      entry.taskId === String(taskId)
+    )
+  );
+
+  setIndividualSyncQueue(filtered);
+
+  queueIndividualSync({
+    type: 'delete',
+    userId,
+    taskId: String(taskId)
+  });
+
+  await processIndividualSyncQueue();
+}
+
+// Processa as operações pendentes em ordem
+async function processIndividualSyncQueue() {
+  if (!navigator.onLine) return;
+
+  // Impede duas sincronizações simultâneas.
+  if (processIndividualSyncQueue.running) return;
+
+  processIndividualSyncQueue.running = true;
+
+  try {
+    const userId = await getCurrentUserId();
+
+    if (!userId) return;
+
+    while (true) {
+      const queue = getIndividualSyncQueue();
+
+      const operation = queue.find(
+        entry => entry.userId === userId
+      );
+
+      if (!operation) break;
+
+      let result;
+
+      try {
+        if (operation.type === 'task') {
+          result = await supabaseClient
+            .from('individual_tasks')
+            .upsert(operation.payload, { onConflict: 'id' });
+
+        } else if (operation.type === 'record') {
+          result = await supabaseClient
+            .from('individual_task_records')
+            .upsert(operation.payload, {
+              onConflict: 'task_id,record_date'
+            });
+
+        } else if (operation.type === 'delete') {
+          result = await supabaseClient
+            .from('individual_tasks')
+            .delete()
+            .eq('id', operation.taskId)
+            .eq('user_id', userId);
+
+        } else {
+          console.error('Operação desconhecida:', operation);
+          break;
+        }
+
+        if (result.error) {
+          console.error('Erro ao sincronizar:', result.error);
+          break;
+        }
+
+        // Atualiza a fila mais recente, sem apagar alterações novas.
+        const latestQueue = getIndividualSyncQueue();
+
+        const updatedQueue = latestQueue.filter(
+          entry => JSON.stringify(entry) !== JSON.stringify(operation)
+        );
+
+        setIndividualSyncQueue(updatedQueue);
+
+      } catch (error) {
+        console.error(
+          'Falha na sincronização. Operação mantida na fila:',
+          error
+        );
+        break;
+      }
+    }
+
+  } finally {
+    processIndividualSyncQueue.running = false;
+  }
+}
+
+// Tenta sincronizar novamente quando a internet voltar
+window.addEventListener('online', () => {
+  processIndividualSyncQueue();
+});
+
 
 
 function setTheme(theme) {
@@ -1821,12 +2051,20 @@ function statusFor(item, date) {
   return records[date]?.[item.id] || 'pending';
 }
 
-function register(item, date, status) {
+
+async function register(item, date, status) {
   if (!records[date]) records[date] = {};
+
   records[date][item.id] = status;
+
+  // Salva imediatamente no armazenamento local.
   save();
   render();
+
+  // Sincroniza o histórico com o Supabase.
+  await syncIndividualRecord(item, date, status);
 }
+
 
 function createItemElement(item, date) {
   const el = document.createElement('div');
@@ -1888,32 +2126,34 @@ function createItemElement(item, date) {
   remove.className = 'secondary';
   remove.textContent = 'Apagar';
 
-  remove.onclick = () => {
-    const confirmed = confirm(
-      `Deseja apagar o compromisso "${item.name}"? Essa ação também removerá seus registros.`
-    );
+ remove.onclick = async () => {
+  const confirmed = confirm(
+    `Deseja apagar o compromisso "${item.name}"? Essa ação também removerá seus registros.`
+  );
 
-    if (!confirmed) return;
+  if (!confirmed) return;
 
-    const index = items.findIndex(existing => existing.id === item.id);
+  const index = items.findIndex(existing => existing.id === item.id);
 
-    if (index !== -1) {
-      items.splice(index, 1);
-    }
+  if (index !== -1) {
+    items.splice(index, 1);
+  }
 
-    Object.keys(records).forEach(recordDate => {
-      if (records[recordDate]) {
-        delete records[recordDate][item.id];
+  Object.keys(records).forEach(recordDate => {
+    if (records[recordDate]) {
+      delete records[recordDate][item.id];
 
-        if (Object.keys(records[recordDate]).length === 0) {
-          delete records[recordDate];
-        }
+      if (Object.keys(records[recordDate]).length === 0) {
+        delete records[recordDate];
       }
-    });
+    }
+  });
 
-    save();
-    render();
-  };
+  save();
+  render();
+
+  await syncIndividualDelete(item.id);
+};
 
   actions.append(remove);
 
@@ -2141,6 +2381,18 @@ async function loadIndividualDataFromSupabase() {
     }
 
     const userId = auth.user.id;
+
+    await processIndividualSyncQueue();
+    const pendingOperations = getIndividualSyncQueue().filter(
+  operation => operation.userId === userId
+);
+
+if (pendingOperations.length > 0) {
+  console.log(
+    'Existem operações pendentes. Os dados locais foram preservados.'
+  );
+  return;
+}
 
     const { data: cloudTasks, error: tasksError } =
       await supabaseClient
@@ -2399,7 +2651,8 @@ chartCenter.style.color = chartColors.text;
 
 
 
-$('itemForm').addEventListener('submit', (e) => {
+
+$('itemForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const weekdays = Array.from(
@@ -2430,7 +2683,6 @@ $('itemForm').addEventListener('submit', (e) => {
     return;
   }
 
-  // Impede tarefas com nomes duplicados
   const normalizedName = itemData.name
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -2456,21 +2708,25 @@ $('itemForm').addEventListener('submit', (e) => {
     return;
   }
 
-  if (editingItemId) {
-    const item = items.find(x => x.id === editingItemId);
+  let savedItem;
 
-    if (item) {
-      Object.assign(item, itemData);
-      item.legacy = false;
-      delete item.repeat;
+  if (editingItemId) {
+    savedItem = items.find(x => x.id === editingItemId);
+
+    if (savedItem) {
+      Object.assign(savedItem, itemData);
+      savedItem.legacy = false;
+      delete savedItem.repeat;
     }
 
     alert('Tarefa atualizada!');
   } else {
-    items.push({
+    savedItem = {
       id: crypto.randomUUID(),
       ...itemData
-    });
+    };
+
+    items.push(savedItem);
 
     alert('Tarefa salva!');
   }
@@ -2478,7 +2734,12 @@ $('itemForm').addEventListener('submit', (e) => {
   save();
   cancelEdit();
   render();
+
+  if (savedItem) {
+    await syncIndividualTask(savedItem);
+  }
 });
+
 
 
 
@@ -2657,6 +2918,7 @@ function renderItems() {
 
         save();
         render();
+        syncIndividualDelete(item.id);
       }
     };
 
