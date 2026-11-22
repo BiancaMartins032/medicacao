@@ -1375,7 +1375,9 @@ async function updateAccountStatus() {
   passwordInput.value = '';
   message.textContent = 'Conectado como ' + data.user.email;
 
-  await loadIndividualDataFromSupabase();
+  console.log('1. Iniciando carregamento individual...');
+ await loadIndividualDataFromSupabase();
+ console.log('2. Carregamento individual finalizado.');
 }
 
 async function signOutAccount() {
