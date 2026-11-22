@@ -1025,20 +1025,22 @@ body[data-theme="black"] .monthly-dot.missed {
 
     </div>
 
-    <div id="generalMissionFields" style="display:none;">
-      <div class="card">
-        <h3>Etapas da missão</h3>
-        <p>As etapas serão organizadas em uma lista compartilhada.</p>
-        <div id="generalMissionList"></div>
-      </div>
-    </div>
+    
+<div id="generalMissionFields" style="display:none;">
+  <div class="card">
+    <h3 id="missionChecklistTitle">Etapas da missão</h3>
+    <p>Selecione as atividades que vocês precisam realizar.</p>
+    <div id="generalMissionList"></div>
+  </div>
+</div>
+
 
   </div>
 
 </div>
 
 
-
+<div id="individualFields">
       <label for="itemName">O que você precisa fazer?</label>
       <input id="itemName" required maxlength="100"
         placeholder="Ex.: Consulta, caminhada, estudar...">
@@ -1098,6 +1100,7 @@ body[data-theme="black"] .monthly-dot.missed {
       >
         Cancelar edição
       </button>
+  </div>
     </form>
 
     <div class="card" style="margin-top:18px;">
@@ -1996,8 +1999,13 @@ function updateTaskType() {
   if (type !== 'shared') {
     $('missionType').value = '';
     updateMissionType();
+    const individualFields = $('individualFields');
+
+individualFields.style.display =
+  type === 'shared' ? 'none' : 'block';
   }
 }
+
 
 function updateMissionType() {
   const mission = $('missionType').value;
@@ -2024,10 +2032,77 @@ function updateMissionType() {
 
     title.value = titles[mission] || '';
   }
+
+  const options = {
+    housework: [
+      'Arrumar a cama',
+      'Lavar a louça',
+      'Varrer a casa',
+      'Passar pano no chão',
+      'Limpar os móveis',
+      'Lavar o banheiro',
+      'Organizar a cozinha',
+      'Retirar o lixo',
+      'Lavar as roupas',
+      'Estender as roupas',
+      'Guardar as roupas',
+      'Organizar os quartos'
+    ],
+    trip: [
+      'Definir o destino',
+      'Reservar hospedagem',
+      'Comprar passagens',
+      'Organizar documentos',
+      'Preparar as malas',
+      'Planejar o roteiro'
+    ],
+    finances: [
+      'Conferir as contas',
+      'Pagar contas pendentes',
+      'Organizar o orçamento',
+      'Conferir os gastos',
+      'Definir metas de economia'
+    ],
+    other: []
+  };
+
+  const checklist = $('generalMissionList');
+  const checklistTitle = $('missionChecklistTitle');
+
+  checklist.replaceChildren();
+
+  const missionOptions = options[mission] || [];
+
+  checklistTitle.textContent =
+    mission === 'housework' ? 'Tarefas domésticas' :
+    mission === 'trip' ? 'Preparativos da viagem' :
+    mission === 'finances' ? 'Tarefas financeiras' :
+    'Etapas da missão';
+
+  missionOptions.forEach(option => {
+    const label = document.createElement('label');
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.gap = '8px';
+    label.style.margin = '10px 0';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = option;
+
+    const text = document.createElement('span');
+    text.textContent = option;
+
+    label.append(checkbox, text);
+    checklist.append(label);
+  });
+
+  if (mission === 'other') {
+    checklist.textContent =
+      'Em breve vocês poderão adicionar etapas personalizadas.';
+  }
 }
 
-$('taskType').addEventListener('change', updateTaskType);
-$('missionType').addEventListener('change', updateMissionType);
 
 
   
