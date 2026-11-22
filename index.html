@@ -936,7 +936,38 @@ body[data-theme="black"] .monthly-dot.missed {
 
 </section>
 
+<div id="sharedMissionModal" class="task-modal" style="display:none;">
+  <div class="task-modal-content">
 
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+      <h3 id="sharedMissionModalTitle">Nome da missão</h3>
+
+      <button
+        type="button"
+        class="secondary"
+        onclick="closeSharedMissionModal()"
+        aria-label="Fechar missão"
+      >✕</button>
+    </div>
+
+    <div style="margin:16px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <strong>Progresso</strong>
+        <strong id="sharedMissionPercentage">0%</strong>
+      </div>
+
+      <div style="height:10px; background:var(--border); border-radius:20px; overflow:hidden;">
+        <div
+          id="sharedMissionProgressFill"
+          style="height:100%; width:0%; background:var(--primary); border-radius:20px; transition:width .2s ease;"
+        ></div>
+      </div>
+    </div>
+
+    <div id="sharedMissionActivities"></div>
+
+  </div>
+</div>
 <div id="taskModal" class="task-modal">
   <div class="task-modal-content">
 
@@ -2498,6 +2529,130 @@ function createItemElement(item, date) {
 
 let sharedTasksLoadVersion = 0;
 
+  function openSharedMissionModal(task, activities) {
+  const modal = $('sharedMissionModal');
+
+  $('sharedMissionModalTitle').textContent = task.title;
+
+  const activityList = $('sharedMissionActivities');
+  activityList.replaceChildren();
+
+  const completedCount = activities.filter(
+    activity => activity.is_completed
+  ).length;
+
+  const percentage = activities.length
+    ? Math.round((completedCount / activities.length) * 100)
+    : 0;
+
+  $('sharedMissionPercentage').textContent = percentage + '%';
+  $('sharedMissionProgressFill').style.width = percentage + '%';
+
+  if (!activities.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'Esta missão ainda não possui atividades.';
+    activityList.append(empty);
+  }
+
+  activities.forEach(activity => {
+    const row = document.createElement('label');
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.gap = '10px';
+    row.style.padding = '12px 0';
+    row.style.borderBottom = '1px solid var(--border)';
+    row.style.cursor = 'pointer';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = activity.is_completed;
+    checkbox.style.width = '18px';
+    checkbox.style.height = '18px';
+    checkbox.style.flexShrink = '0';
+
+    const name = document.createElement('span');
+    name.textContent = activity.activity_name;
+    name.style.flex = '1';
+    name.style.minWidth = '0';
+    name.style.overflowWrap = 'anywhere';
+
+    if (activity.is_completed) {
+      name.style.textDecoration = 'line-through';
+      name.style.opacity = '0.65';
+    }
+
+    checkbox.addEventListener('change', async () => {
+      checkbox.disabled = true;
+
+      const { data: userData, error: userError } =
+        await supabaseClient.auth.getUser();
+
+      if (userError || !userData.user) {
+        alert('Não foi possível identificar seu usuário.');
+        loadSharedTasks();
+        return;
+      }
+
+      const completed = checkbox.checked;
+
+      const { error } = await supabaseClient
+        .from('shared_mission_activities')
+        .update({
+          is_completed: completed,
+          completed_by: completed ? userData.user.id : null,
+          completed_at: completed ? new Date().toISOString() : null
+        })
+        .eq('id', activity.id);
+
+           if (error) {
+        console.error('Erro ao atualizar atividade:', error);
+        alert('Não foi possível atualizar a atividade.');
+        checkbox.checked = activity.is_completed;
+        checkbox.disabled = false;
+        return;
+      }
+      await openSharedMissionWithFreshData(task.id);
+      await loadSharedTasks();
+    });
+
+    row.append(checkbox, name);
+    activityList.append(row);
+  });
+
+  modal.style.display = 'flex';
+}
+
+function closeSharedMissionModal() {
+  $('sharedMissionModal').style.display = 'none';
+}
+
+async function openSharedMissionWithFreshData(taskId) {
+  const { data: activities, error } = await supabaseClient
+    .from('shared_mission_activities')
+    .select('id, task_id, activity_name, is_completed, points')
+    .eq('task_id', taskId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Erro ao atualizar atividades:', error);
+    alert('Não foi possível atualizar o progresso.');
+    return;
+  }
+
+  const { data: task, error: taskError } = await supabaseClient
+    .from('shared_tasks')
+    .select('id, title')
+    .eq('id', taskId)
+    .single();
+
+  if (taskError) {
+    console.error('Erro ao carregar missão:', taskError);
+    return;
+  }
+
+  openSharedMissionModal(task, activities || []);
+}
 async function loadSharedTasks() {
   const card = $('sharedTasksCard');
   const list = $('sharedTasksList');
@@ -2628,81 +2783,43 @@ list.replaceChildren();
     return;
   }
 
-  todayTasks.forEach(task => {
-    const status = recordsByTask[task.id] || 'pending';
 
-    const item = document.createElement('div');
-    item.className = 'item';
+todayTasks.forEach(task => {
+  const activities = activitiesByTask[task.id] || [];
 
-    const top = document.createElement('div');
-    top.className = 'item-top';
-
-    const info = document.createElement('div');
-
-    const name = document.createElement('strong');
-    name.textContent = task.title;
-
-    const detail = document.createElement('small');
-    detail.textContent =
-      task.category +
-      (task.due_time ? ' · ' + task.due_time.slice(0, 5) : '') +
-      ' · ' + task.points + ' pontos';
-
-    info.append(name, detail);
-
-    const badge = document.createElement('span');
-    badge.className =
-      'status' +
-      (status === 'done' ? ' done' :
-       status === 'missed' ? ' missed' : '');
-
-    badge.textContent =
-      status === 'done' ? 'Concluída' :
-      status === 'missed' ? 'Não realizada' : 'Pendente';
-
-    top.append(info, badge);
-    item.append(top);
-
-   if (task.details) {
-  const description = document.createElement('small');
-  description.textContent = task.details;
-  item.append(description);
-}
-
-// Atividades e progresso da missão.
-const activities = activitiesByTask[task.id] || [];
-
-if (activities.length) {
   const completedCount = activities.filter(
     activity => activity.is_completed
   ).length;
 
-  const percentage = Math.round(
-    (completedCount / activities.length) * 100
-  );
+  const percentage = activities.length
+    ? Math.round((completedCount / activities.length) * 100)
+    : 0;
 
-  const progressArea = document.createElement('div');
-  progressArea.style.marginTop = '12px';
+  const item = document.createElement('div');
+  item.className = 'item';
+  item.style.cursor = 'pointer';
 
-  const progressInfo = document.createElement('div');
-  progressInfo.style.display = 'flex';
-  progressInfo.style.justifyContent = 'space-between';
-  progressInfo.style.alignItems = 'center';
-  progressInfo.style.marginBottom = '6px';
+  const top = document.createElement('div');
+  top.style.display = 'flex';
+  top.style.justifyContent = 'space-between';
+  top.style.alignItems = 'center';
+  top.style.gap = '12px';
 
-  const progressLabel = document.createElement('small');
-  progressLabel.textContent = 'Progresso da missão';
+  const name = document.createElement('strong');
+  name.textContent = task.title;
+  name.style.flex = '1';
 
-  const progressValue = document.createElement('strong');
-  progressValue.textContent = percentage + '%';
+  const percentageText = document.createElement('strong');
+  percentageText.textContent = percentage + '%';
 
-  progressInfo.append(progressLabel, progressValue);
+  top.append(name, percentageText);
 
   const progressTrack = document.createElement('div');
   progressTrack.style.height = '8px';
   progressTrack.style.background = 'var(--border)';
   progressTrack.style.borderRadius = '20px';
   progressTrack.style.overflow = 'hidden';
+  progressTrack.style.marginTop = '10px';
 
   const progressFill = document.createElement('div');
   progressFill.style.width = percentage + '%';
@@ -2712,115 +2829,26 @@ if (activities.length) {
   progressFill.style.transition = 'width 0.2s ease';
 
   progressTrack.append(progressFill);
-  progressArea.append(progressInfo, progressTrack);
+  item.append(top, progressTrack);
 
-  const activityList = document.createElement('div');
-  activityList.style.display = 'grid';
-  activityList.style.gap = '8px';
-  activityList.style.marginTop = '12px';
-
-  activities.forEach(activity => {
-  const activityRow = document.createElement('label');
-  activityRow.style.display = 'flex';
-  activityRow.style.alignItems = 'center';
-  activityRow.style.gap = '10px';
-  activityRow.style.cursor = 'pointer';
-
-  const activityCheckbox = document.createElement('input');
-  activityCheckbox.type = 'checkbox';
-  activityCheckbox.checked = activity.is_completed;
-  activityCheckbox.style.width = '18px';
-  activityCheckbox.style.height = '18px';
-  activityCheckbox.style.flexShrink = '0';
-
-  const activityName = document.createElement('span');
-  activityName.textContent = activity.activity_name;
-  activityName.style.flex = '1';
-  activityName.style.minWidth = '0';
-  activityName.style.overflowWrap = 'anywhere';
-
-  if (activity.is_completed) {
-    activityName.style.textDecoration = 'line-through';
-    activityName.style.opacity = '0.65';
-  }
-
-  activityCheckbox.addEventListener('change', async () => {
-    activityCheckbox.disabled = true;
-
-    const { data: userData, error: userError } =
-      await supabaseClient.auth.getUser();
-
-    if (userError || !userData.user) {
-      alert('Não foi possível identificar seu usuário.');
-      loadSharedTasks();
-      return;
-    }
-
-    const completed = activityCheckbox.checked;
-
-    const { error: updateError } = await supabaseClient
-      .from('shared_mission_activities')
-      .update({
-        is_completed: completed,
-        completed_by: completed ? userData.user.id : null,
-        completed_at: completed ? new Date().toISOString() : null
-      })
-      .eq('id', activity.id);
-
-    if (updateError) {
-      console.error('Erro ao atualizar atividade:', updateError);
-      alert('Não foi possível atualizar a atividade. Tente novamente.');
-    }
-
-    await loadSharedTasks();
+  item.addEventListener('click', () => {
+    openSharedMissionModal(task, activities);
   });
 
-  activityRow.append(activityCheckbox, activityName);
-  activityList.append(activityRow);
+  item.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openSharedMissionModal(task, activities);
+    }
+  });
+
+  item.tabIndex = 0;
+  item.setAttribute('role', 'button');
+
+    list.append(item);
 });
 
-  item.append(progressArea, activityList);
-} else {
-  const noActivities = document.createElement('small');
-  noActivities.textContent = 'Esta missão não possui atividades cadastradas.';
-  item.append(noActivities);
 }
-
-const actions = document.createElement('div');
-actions.className = 'actions';
-
-    if (status !== 'done') {
-      const doneButton = document.createElement('button');
-      doneButton.textContent = 'Concluir';
-      doneButton.onclick = () =>
-        updateSharedTaskStatus(task, 'done');
-      actions.append(doneButton);
-    }
-
-    if (status !== 'missed') {
-      const missedButton = document.createElement('button');
-      missedButton.className = 'secondary';
-      missedButton.textContent = 'Não realizada';
-      missedButton.onclick = () =>
-        updateSharedTaskStatus(task, 'missed');
-      actions.append(missedButton);
-    }
-
-    if (status !== 'pending') {
-      const undoButton = document.createElement('button');
-      undoButton.className = 'secondary';
-      undoButton.textContent = 'Desfazer';
-      undoButton.onclick = () =>
-        updateSharedTaskStatus(task, 'pending');
-      actions.append(undoButton);
-    }
-
-    item.append(actions);
-    list.append(item);
-  });
-}
-
-
 
 async function saveSharedMission() {
   try {
