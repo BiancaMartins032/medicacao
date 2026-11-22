@@ -2589,10 +2589,38 @@ async function loadSharedTasks() {
     }
   }
 
+ if (version !== sharedTasksLoadVersion) return;
+
+// Busca as atividades das missões exibidas.
+let activitiesByTask = {};
+
+if (todayTasks.length) {
+  const taskIds = todayTasks.map(task => task.id);
+
+  const { data: missionActivities, error: activitiesError } =
+    await supabaseClient
+      .from('shared_mission_activities')
+      .select('id, task_id, activity_name, is_completed, points')
+      .in('task_id', taskIds)
+      .order('created_at', { ascending: true });
+
   if (version !== sharedTasksLoadVersion) return;
 
-  card.style.display = 'block';
-  list.replaceChildren();
+  if (activitiesError) {
+    console.error('Erro ao carregar atividades das missões:', activitiesError);
+  } else {
+    (missionActivities || []).forEach(activity => {
+      if (!activitiesByTask[activity.task_id]) {
+        activitiesByTask[activity.task_id] = [];
+      }
+
+      activitiesByTask[activity.task_id].push(activity);
+    });
+  }
+}
+
+card.style.display = 'block';
+list.replaceChildren();
 
   if (!todayTasks.length) {
     list.innerHTML =
@@ -2635,14 +2663,131 @@ async function loadSharedTasks() {
     top.append(info, badge);
     item.append(top);
 
-    if (task.details) {
-      const description = document.createElement('small');
-      description.textContent = task.details;
-      item.append(description);
+   if (task.details) {
+  const description = document.createElement('small');
+  description.textContent = task.details;
+  item.append(description);
+}
+
+// Atividades e progresso da missão.
+const activities = activitiesByTask[task.id] || [];
+
+if (activities.length) {
+  const completedCount = activities.filter(
+    activity => activity.is_completed
+  ).length;
+
+  const percentage = Math.round(
+    (completedCount / activities.length) * 100
+  );
+
+  const progressArea = document.createElement('div');
+  progressArea.style.marginTop = '12px';
+
+  const progressInfo = document.createElement('div');
+  progressInfo.style.display = 'flex';
+  progressInfo.style.justifyContent = 'space-between';
+  progressInfo.style.alignItems = 'center';
+  progressInfo.style.marginBottom = '6px';
+
+  const progressLabel = document.createElement('small');
+  progressLabel.textContent = 'Progresso da missão';
+
+  const progressValue = document.createElement('strong');
+  progressValue.textContent = percentage + '%';
+
+  progressInfo.append(progressLabel, progressValue);
+
+  const progressTrack = document.createElement('div');
+  progressTrack.style.height = '8px';
+  progressTrack.style.background = 'var(--border)';
+  progressTrack.style.borderRadius = '20px';
+  progressTrack.style.overflow = 'hidden';
+
+  const progressFill = document.createElement('div');
+  progressFill.style.width = percentage + '%';
+  progressFill.style.height = '100%';
+  progressFill.style.background = 'var(--primary)';
+  progressFill.style.borderRadius = '20px';
+  progressFill.style.transition = 'width 0.2s ease';
+
+  progressTrack.append(progressFill);
+  progressArea.append(progressInfo, progressTrack);
+
+  const activityList = document.createElement('div');
+  activityList.style.display = 'grid';
+  activityList.style.gap = '8px';
+  activityList.style.marginTop = '12px';
+
+  activities.forEach(activity => {
+  const activityRow = document.createElement('label');
+  activityRow.style.display = 'flex';
+  activityRow.style.alignItems = 'center';
+  activityRow.style.gap = '10px';
+  activityRow.style.cursor = 'pointer';
+
+  const activityCheckbox = document.createElement('input');
+  activityCheckbox.type = 'checkbox';
+  activityCheckbox.checked = activity.is_completed;
+  activityCheckbox.style.width = '18px';
+  activityCheckbox.style.height = '18px';
+  activityCheckbox.style.flexShrink = '0';
+
+  const activityName = document.createElement('span');
+  activityName.textContent = activity.activity_name;
+  activityName.style.flex = '1';
+  activityName.style.minWidth = '0';
+  activityName.style.overflowWrap = 'anywhere';
+
+  if (activity.is_completed) {
+    activityName.style.textDecoration = 'line-through';
+    activityName.style.opacity = '0.65';
+  }
+
+  activityCheckbox.addEventListener('change', async () => {
+    activityCheckbox.disabled = true;
+
+    const { data: userData, error: userError } =
+      await supabaseClient.auth.getUser();
+
+    if (userError || !userData.user) {
+      alert('Não foi possível identificar seu usuário.');
+      loadSharedTasks();
+      return;
     }
 
-    const actions = document.createElement('div');
-    actions.className = 'actions';
+    const completed = activityCheckbox.checked;
+
+    const { error: updateError } = await supabaseClient
+      .from('shared_mission_activities')
+      .update({
+        is_completed: completed,
+        completed_by: completed ? userData.user.id : null,
+        completed_at: completed ? new Date().toISOString() : null
+      })
+      .eq('id', activity.id);
+
+    if (updateError) {
+      console.error('Erro ao atualizar atividade:', updateError);
+      alert('Não foi possível atualizar a atividade. Tente novamente.');
+    }
+
+    await loadSharedTasks();
+  });
+
+  activityRow.append(activityCheckbox, activityName);
+  activityList.append(activityRow);
+});
+
+  item.append(progressArea, activityList);
+} else {
+  const noActivities = document.createElement('small');
+  noActivities.textContent = 'Esta missão não possui atividades cadastradas.';
+  item.append(noActivities);
+}
+
+const actions = document.createElement('div');
+actions.className = 'actions';
 
     if (status !== 'done') {
       const doneButton = document.createElement('button');
