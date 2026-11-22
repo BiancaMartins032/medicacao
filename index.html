@@ -2546,7 +2546,9 @@ let sharedTasksLoadVersion = 0;
     : 0;
 
   $('sharedMissionPercentage').textContent = percentage + '%';
-  $('sharedMissionProgressFill').style.width = percentage + '%';
+
+$('sharedMissionProgressFill').style.transition = 'width 0.6s ease';
+$('sharedMissionProgressFill').style.width = percentage + '%';
 
   if (!activities.length) {
     const empty = document.createElement('div');
@@ -2822,7 +2824,7 @@ todayTasks.forEach(task => {
   progressTrack.style.marginTop = '10px';
 
   const progressFill = document.createElement('div');
-  progressFill.style.width = percentage + '%';
+  progressFill.style.width = '0%';
   progressFill.style.height = '100%';
   progressFill.style.background = 'var(--primary)';
   progressFill.style.borderRadius = '20px';
@@ -2843,9 +2845,13 @@ todayTasks.forEach(task => {
   });
 
   item.tabIndex = 0;
-  item.setAttribute('role', 'button');
+item.setAttribute('role', 'button');
 
-    list.append(item);
+list.append(item);
+
+requestAnimationFrame(() => {
+  progressFill.style.width = percentage + '%';
+});
 });
 
 }
