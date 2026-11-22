@@ -2124,7 +2124,7 @@ async function updateMissionType() {
 
   checklist.style.display = 'grid';
   checklist.style.gridTemplateColumns =
-    'repeat(2, minmax(0, 1fr))';
+    'repeat(auto-fit, minmax(min(100%, 260px), 1fr))';
   checklist.style.gap = '10px';
 
   const checklistTitle = $('missionChecklistTitle');
@@ -2161,9 +2161,11 @@ async function updateMissionType() {
 
     const text = document.createElement('span');
     text.textContent = name;
-    text.style.flex = '1';
-    text.style.minWidth = '0';
-    text.style.overflowWrap = 'anywhere';
+    text.style.flex = '1 1 auto';
+text.style.minWidth = '0';
+text.style.width = 'auto';
+text.style.whiteSpace = 'normal';
+text.style.overflowWrap = 'break-word';
 
     
 const pointsArea = document.createElement('div');
