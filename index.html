@@ -2163,29 +2163,40 @@ async function updateMissionType() {
     text.textContent = name;
     text.style.flex = '1';
     text.style.minWidth = '0';
+    text.style.overflowWrap = 'anywhere';
 
-    const pointsInput = document.createElement('input');
-    pointsInput.type = 'number';
-    pointsInput.min = '0';
-    pointsInput.step = '1';
-    pointsInput.value = points;
-    pointsInput.name = 'activityPoints';
-    pointsInput.title = 'Pontos desta atividade';
-    pointsInput.style.width = '58px';
-    pointsInput.style.padding = '6px';
-    pointsInput.style.margin = '0';
-    pointsInput.style.flexShrink = '0';
+    
+const pointsArea = document.createElement('div');
+pointsArea.style.display = 'flex';
+pointsArea.style.alignItems = 'center';
+pointsArea.style.gap = '4px';
+pointsArea.style.flexShrink = '0';
 
-    const pointsLabel = document.createElement('small');
-    pointsLabel.textContent = 'pts';
-    pointsLabel.style.flexShrink = '0';
+const pointsInput = document.createElement('input');
+pointsInput.type = 'number';
+pointsInput.min = '0';
+pointsInput.step = '1';
+pointsInput.value = points;
+pointsInput.name = 'activityPoints';
+pointsInput.title = 'Pontos desta atividade';
+pointsInput.style.width = '48px';
+pointsInput.style.padding = '5px';
+pointsInput.style.margin = '0';
+pointsInput.style.flexShrink = '0';
 
-    card.append(
-      checkbox,
-      text,
-      pointsInput,
-      pointsLabel
-    );
+const pointsLabel = document.createElement('small');
+pointsLabel.textContent = 'pts';
+pointsLabel.style.fontSize = '11px';
+pointsLabel.style.flexShrink = '0';
+
+pointsArea.append(pointsInput, pointsLabel);
+
+card.append(
+  checkbox,
+  text,
+  pointsArea
+);
+
 
     checklist.append(card);
   }
@@ -2244,7 +2255,11 @@ async function updateMissionType() {
     const savedPoints = savedDefaults[key] ?? 5;
 
     createActivity(activity, savedPoints, true);
-    addActivityInput.value = '';
+
+const addedCard = checklist.lastElementChild;
+checklist.insertBefore(addedCard, addActivityArea);
+
+addActivityInput.value = '';
   });
 
   addActivityRow.append(
@@ -2536,7 +2551,7 @@ async function loadSharedTasks() {
       return start.getDay() === current.getDay();
     }
 
-    return task.due_date === date;
+    return !task.due_date || task.due_date === date;
   });
 
   todayTasks.sort((a, b) =>
