@@ -959,7 +959,7 @@ body[data-theme="black"] .monthly-dot.missed {
       <div style="height:10px; background:var(--border); border-radius:20px; overflow:hidden;">
         <div
           id="sharedMissionProgressFill"
-          style="height:100%; width:0%; background:var(--primary); border-radius:20px; transition:width .2s ease;"
+          style="height:100%; width:0%; background:#5267D8; border-radius:20px; transition:width .6s ease;"
         ></div>
       </div>
     </div>
@@ -2824,11 +2824,12 @@ todayTasks.forEach(task => {
   progressTrack.style.marginTop = '10px';
 
   const progressFill = document.createElement('div');
-  progressFill.style.width = '0%';
-  progressFill.style.height = '100%';
-  progressFill.style.background = 'var(--primary)';
-  progressFill.style.borderRadius = '20px';
-  progressFill.style.transition = 'width 0.2s ease';
+progressFill.style.width = '0%';
+progressFill.style.height = '8px';
+progressFill.style.minWidth = '0';
+progressFill.style.backgroundColor = '#5267D8';
+progressFill.style.borderRadius = '20px';
+progressFill.style.transition = 'width 0.6s ease';
 
   progressTrack.append(progressFill);
   item.append(top, progressTrack);
