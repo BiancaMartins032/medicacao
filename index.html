@@ -951,51 +951,92 @@ body[data-theme="black"] .monthly-dot.missed {
   <option value="shared">Tarefa compartilhada</option>
 </select>
       
+
 <div id="sharedFields" style="display:none;">
 
   <div class="card">
-    <h3>O que você precisa fazer?</h3>
+    <h3>Qual missão vocês desejam vencer?</h3>
 
-    <label for="myResponsibility">Sua responsabilidade</label>
-    <input id="myResponsibility" maxlength="100"
-      placeholder="Ex.: Ir ao aniversário">
-
-    <label for="myResponsibilityDetails">Seus detalhes</label>
-    <textarea id="myResponsibilityDetails" maxlength="300"
-      placeholder="Ex.: Levar o presente e chegar às 19h"></textarea>
-
-    <label for="myResponsibilityPoints">Pontos</label>
-    <select id="myResponsibilityPoints">
-      <option value="5">Muito leve — 5 pontos</option>
-      <option value="10">Leve — 10 pontos</option>
-      <option value="20" selected>Moderado — 20 pontos</option>
-      <option value="30">Alto — 30 pontos</option>
-      <option value="50">Muito alto — 50 pontos</option>
+    <label for="missionType">Tipo de missão</label>
+    <select id="missionType">
+      <option value="">Escolha uma missão</option>
+      <option value="housework">Arrumar a casa</option>
+      <option value="supermarket">Ir ao supermercado</option>
+      <option value="trip">Preparar uma viagem</option>
+      <option value="finances">Organizar as finanças</option>
+      <option value="other">Outra missão</option>
     </select>
+
+    <label for="missionTitle">Nome da missão</label>
+    <input
+      id="missionTitle"
+      maxlength="100"
+      placeholder="Ex.: Compras da semana"
+    >
+
+    <label for="missionDetails">Informações da missão</label>
+    <textarea
+      id="missionDetails"
+      maxlength="500"
+      placeholder="Informações que os dois poderão consultar..."
+    ></textarea>
   </div>
 
-  <div class="card">
-    <h3>O que seu parceiro precisa fazer?</h3>
+  <div id="missionSpecificFields">
 
-    <label for="partnerResponsibility">Responsabilidade do parceiro</label>
-    <input id="partnerResponsibility" maxlength="100"
-      placeholder="Ex.: Lavar a roupa dele">
+    <div id="shoppingMissionFields" style="display:none;">
 
-    <label for="partnerResponsibilityDetails">Detalhes do parceiro</label>
-    <textarea id="partnerResponsibilityDetails" maxlength="300"
-      placeholder="Informações que somente ele deverá ver"></textarea>
+      <div class="card">
+        <h3>Lista de compras</h3>
+        <p>Pesquisem os produtos e adicionem tudo que precisam comprar.</p>
 
-    <label for="partnerResponsibilityPoints">Pontos</label>
-    <select id="partnerResponsibilityPoints">
-      <option value="5">Muito leve — 5 pontos</option>
-      <option value="10">Leve — 10 pontos</option>
-      <option value="20" selected>Moderado — 20 pontos</option>
-      <option value="30">Alto — 30 pontos</option>
-      <option value="50">Muito alto — 50 pontos</option>
-    </select>
+        <label for="shoppingProductSearch">Pesquisar produto</label>
+        <input
+          id="shoppingProductSearch"
+          type="search"
+          placeholder="Ex.: Arroz, leite, café..."
+        >
+
+        <div id="shoppingSearchResults"></div>
+
+        <label for="customProductName">Adicionar outro produto</label>
+        <div class="actions">
+          <input
+            id="customProductName"
+            maxlength="100"
+            placeholder="Nome do produto"
+          >
+          <button type="button" id="addCustomProductButton">
+            Adicionar
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Produtos adicionados</h3>
+        <div id="shoppingDraftList">
+          <div class="empty">Sua lista ainda está vazia.</div>
+        </div>
+
+        <button type="button" id="saveShoppingListButton">
+          Salvar alterações
+        </button>
+      </div>
+
+    </div>
+
+    <div id="generalMissionFields" style="display:none;">
+      <div class="card">
+        <h3>Etapas da missão</h3>
+        <p>As etapas serão organizadas em uma lista compartilhada.</p>
+        <div id="generalMissionList"></div>
+      </div>
+    </div>
+
   </div>
 
 </div>
+
 
 
       <label for="itemName">O que você precisa fazer?</label>
@@ -1945,14 +1986,49 @@ function applyTheme() {
 }
 
 
+
 function updateTaskType() {
   const type = $('taskType').value;
   const sharedFields = $('sharedFields');
 
   sharedFields.style.display = type === 'shared' ? 'block' : 'none';
+
+  if (type !== 'shared') {
+    $('missionType').value = '';
+    updateMissionType();
+  }
+}
+
+function updateMissionType() {
+  const mission = $('missionType').value;
+
+  const shoppingFields = $('shoppingMissionFields');
+  const generalFields = $('generalMissionFields');
+
+  shoppingFields.style.display =
+    mission === 'supermarket' ? 'block' : 'none';
+
+  generalFields.style.display =
+    mission && mission !== 'supermarket' ? 'block' : 'none';
+
+  const title = $('missionTitle');
+
+  if (!title.value.trim()) {
+    const titles = {
+      housework: 'Arrumar a casa',
+      supermarket: 'Ir ao supermercado',
+      trip: 'Preparar uma viagem',
+      finances: 'Organizar as finanças',
+      other: ''
+    };
+
+    title.value = titles[mission] || '';
+  }
 }
 
 $('taskType').addEventListener('change', updateTaskType);
+$('missionType').addEventListener('change', updateMissionType);
+
 
   
 
