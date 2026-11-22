@@ -833,6 +833,13 @@ body[data-theme="black"] .monthly-dot.missed {
   </div>
   <div id="sharedTasksList"></div>
 </div>
+  <div class="card" id="sharedMissionsCard" style="display:none">
+  <div class="section-title">
+    <h3>Missões de vocês</h3>
+    <span class="note">Em conjunto</span>
+  </div>
+  <div id="sharedMissionsList"></div>
+</div>
 
   <div class="card">
     <h3>O que consegui concluir</h3>
@@ -974,13 +981,18 @@ body[data-theme="black"] .monthly-dot.missed {
       placeholder="Ex.: Compras da semana"
     >
 
-    <label for="missionDetails">Informações da missão</label>
+   <label for="missionDetails">Informações da missão</label>
 <textarea
   id="missionDetails"
   maxlength="500"
   placeholder="Informações que os dois poderão consultar..."
 ></textarea>
-  </div>
+
+<button type="submit" id="saveSharedMissionButton">
+  Salvar missão
+</button>
+
+</div>
 
   <div id="missionSpecificFields">
 
@@ -2009,6 +2021,11 @@ function updateTaskType() {
 
   individualFields.style.display =
     type === 'shared' ? 'none' : 'block';
+  individualFields.querySelectorAll(
+  'input, select, textarea, button'
+).forEach(field => {
+  field.disabled = type === 'shared';
+});
 
   if (type !== 'shared') {
     $('missionType').value = '';
@@ -2078,6 +2095,9 @@ function updateMissionType() {
   };
 
   const checklist = $('generalMissionList');
+  checklist.style.display = 'grid';
+  checklist.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+  checklist.style.gap = '10px';
   const checklistTitle = $('missionChecklistTitle');
 
   checklist.replaceChildren();
@@ -2117,6 +2137,7 @@ missionOptions.forEach(option => {
 
 const addActivityArea = document.createElement('div');
 addActivityArea.style.marginTop = '18px';
+addActivityArea.style.gridColumn = '1 / -1';
 
 const addActivityTitle = document.createElement('strong');
 addActivityTitle.textContent = 'Adicionar outra atividade';
@@ -2187,10 +2208,7 @@ addActivityRow.append(addActivityInput, addActivityButton);
 addActivityArea.append(addActivityTitle, addActivityRow);
 checklist.append(addActivityArea);
 
-  if (mission === 'other') {
-  checklist.textContent =
-    'Em breve vocês poderão adicionar etapas personalizadas.';
-  }
+
 }
 
 $('taskType').addEventListener('change', updateTaskType);
@@ -2584,34 +2602,108 @@ async function loadSharedTasks() {
   });
 }
 
-async function updateSharedTaskStatus(task, status) {
-  const { data: userData, error: userError } =
-    await supabaseClient.auth.getUser();
 
-  if (userError || !userData.user) {
-    alert('Entre na sua conta para atualizar a tarefa.');
-    return;
+async function saveSharedMission() {
+  try {
+    const { data: userData, error: userError } =
+      await supabaseClient.auth.getUser();
+
+    if (userError || !userData.user) {
+      alert('Entre na sua conta para criar uma missão.');
+      return false;
+    }
+
+    const missionType = $('missionType').value;
+    const missionTitle = $('missionTitle').value.trim();
+    const missionDetails = $('missionDetails').value.trim();
+
+    if (!missionType) {
+      alert('Escolha o tipo de missão.');
+      return false;
+    }
+
+    if (!missionTitle) {
+      alert('Informe o nome da missão.');
+      $('missionTitle').focus();
+      return false;
+    }
+
+    const activities = Array.from(
+      document.querySelectorAll(
+        '#generalMissionList input[name="missionActivities"]:checked'
+      )
+    ).map(input => input.value.trim()).filter(Boolean);
+
+    if (missionType !== 'supermarket' && activities.length === 0) {
+      alert('Selecione ou adicione pelo menos uma atividade.');
+      return false;
+    }
+
+    const { data: coupleData, error: coupleError } =
+      await supabaseClient.rpc('get_my_couple_status');
+
+    if (coupleError) throw coupleError;
+
+    if (!coupleData || !coupleData.length ||
+        coupleData[0].member_count < 2) {
+      alert('É necessário estar conectado a um parceiro para criar uma missão compartilhada.');
+      return false;
+    }
+
+    const userId = userData.user.id;
+    const coupleId = coupleData[0].couple_id;
+
+    const { data: savedMission, error: missionError } =
+      await supabaseClient
+        .from('shared_tasks')
+        .insert({
+          couple_id: coupleId,
+          title: missionTitle,
+          category: missionType,
+          due_date: null,
+          due_time: null,
+          repeat_rule: 'none',
+          details: missionDetails,
+          created_by: userId,
+          points: 0
+        })
+        .select('id')
+        .single();
+
+    if (missionError) throw missionError;
+
+    if (activities.length > 0) {
+      const activityRows = activities.map(activity => ({
+        task_id: savedMission.id,
+        activity_name: activity,
+        created_by: userId
+      }));
+
+      const { error: activitiesError } =
+        await supabaseClient
+          .from('shared_mission_activities')
+          .insert(activityRows);
+
+      if (activitiesError) {
+        await supabaseClient
+          .from('shared_tasks')
+          .delete()
+          .eq('id', savedMission.id);
+
+        throw activitiesError;
+      }
+    }
+
+    alert('Missão compartilhada salva com sucesso!');
+    return true;
+
+  } catch (error) {
+    console.error('Erro ao salvar missão compartilhada:', error);
+    alert('Não foi possível salvar a missão: ' + error.message);
+    return false;
   }
-
-  const { error } = await supabaseClient
-    .from('shared_task_records')
-    .upsert({
-      task_id: task.id,
-      task_date: today(),
-      status: status,
-      updated_by: userData.user.id,
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'task_id,task_date'
-    });
-
-  if (error) {
-    alert('Não foi possível atualizar: ' + error.message);
-    return;
-  }
-
-  await loadSharedTasks();
 }
+
 
   
 async function loadIndividualDataFromSupabase() {
@@ -2898,6 +2990,18 @@ chartCenter.style.color = chartColors.text;
 
 $('itemForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+    if ($('taskType').value === 'shared') {
+    const saved = await saveSharedMission();
+
+    if (saved) {
+      $('itemForm').reset();
+      updateTaskType();
+      $('taskModal').style.display = 'none';
+      loadSharedTasks();
+    }
+
+    return;
+  }
 
   const weekdays = Array.from(
     document.querySelectorAll('#taskWeekdays input[type="checkbox"]:checked')
