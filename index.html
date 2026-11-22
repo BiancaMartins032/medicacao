@@ -1227,6 +1227,26 @@ body[data-theme="black"] .monthly-dot.missed {
 
   <h2>Espaço casal</h2>
   <p class="note">Um espaço para conectar vocês e compartilhar atividades.</p>
+  <div class="card" style="margin:16px 0;">
+  <h3>Seu nome de exibição</h3>
+  <p class="note">
+    Esse nome aparecerá ao lado das atividades que você concluir.
+  </p>
+
+  <label for="displayNameInput">Como deseja aparecer?</label>
+  <input
+    id="displayNameInput"
+    type="text"
+    maxlength="40"
+    placeholder="Ex.: João"
+  >
+
+  <button type="button" onclick="saveMyDisplayName()">
+    Salvar meu nome
+  </button>
+
+  <p id="displayNameMessage" class="note"></p>
+</div>
 
   <div id="coupleStatus" class="card">
     <p class="note">Verificando a conexão...</p>
@@ -1506,7 +1526,71 @@ async function createCoupleSpace() {
 
   message.textContent = 'Espaço do casal criado com sucesso!';
 }
+
   
+async function saveMyDisplayName() {
+  const input = $('displayNameInput');
+  const message = $('displayNameMessage');
+
+  const displayName = input.value.trim();
+
+  if (!displayName) {
+    message.textContent = 'Digite seu nome antes de salvar.';
+    return;
+  }
+
+  if (displayName.length > 40) {
+    message.textContent = 'O nome pode ter no máximo 40 caracteres.';
+    return;
+  }
+
+  message.textContent = 'Salvando seu nome...';
+
+  const { error } = await supabaseClient.rpc(
+    'set_my_display_name',
+    { p_display_name: displayName }
+  );
+
+  if (error) {
+    console.error('Erro ao salvar nome:', error);
+    message.textContent =
+      'Não foi possível salvar. Verifique se você já está conectado ao espaço casal.';
+    return;
+  }
+
+  message.textContent = 'Seu nome foi salvo com sucesso!';
+}
+  async function loadMyDisplayName() {
+  const input = $('displayNameInput');
+  const message = $('displayNameMessage');
+
+  const { data: userData, error: userError } =
+    await supabaseClient.auth.getUser();
+
+  if (userError || !userData.user) {
+    input.value = '';
+    message.textContent = 'Entre na sua conta para cadastrar seu nome.';
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('couple_members')
+    .select('display_name')
+    .eq('user_id', userData.user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Erro ao carregar nome:', error);
+    message.textContent = 'Não foi possível carregar seu nome.';
+    return;
+  }
+
+  input.value = data?.display_name || '';
+  message.textContent = data?.display_name
+    ? 'Nome cadastrado.'
+    : 'Cadastre seu nome de exibição.';
+}
+
 async function sendCoupleInvite() {
   const email = $('partnerEmail').value.trim().toLowerCase();
   const message = $('inviteMessage');
@@ -1638,6 +1722,7 @@ function openMoreSection(section) {
  $(selected).style.display = 'block';
 
 if (section === 'couple') {
+  loadMyDisplayName();
   loadCoupleStatus();
 }
 }
@@ -2583,6 +2668,23 @@ $('sharedMissionProgressFill').style.width = percentage + '%';
       name.style.textDecoration = 'line-through';
       name.style.opacity = '0.65';
     }
+    const completedBy = document.createElement('span');
+
+completedBy.style.fontSize = '12px';
+completedBy.style.color = 'var(--muted)';
+completedBy.style.textAlign = 'right';
+completedBy.style.marginLeft = 'auto';
+completedBy.style.flexShrink = '0';
+completedBy.style.whiteSpace = 'nowrap';
+
+if (activity.is_completed && activity.completed_by) {
+  const personName =
+    sharedMemberNames[activity.completed_by] || 'Nome não informado';
+
+  completedBy.textContent = 'Feito por: ' + personName;
+} else {
+  completedBy.style.display = 'none';
+}
 
     checkbox.addEventListener('change', async () => {
       checkbox.disabled = true;
@@ -2618,7 +2720,7 @@ $('sharedMissionProgressFill').style.width = percentage + '%';
       await loadSharedTasks();
     });
 
-    row.append(checkbox, name);
+    row.append(checkbox, name, completedBy);
     activityList.append(row);
   });
 
@@ -2632,7 +2734,7 @@ function closeSharedMissionModal() {
 async function openSharedMissionWithFreshData(taskId) {
   const { data: activities, error } = await supabaseClient
     .from('shared_mission_activities')
-    .select('id, task_id, activity_name, is_completed, points')
+    .select('id, task_id, activity_name, is_completed, completed_by, points')
     .eq('task_id', taskId)
     .order('created_at', { ascending: true });
 
@@ -2655,6 +2757,7 @@ async function openSharedMissionWithFreshData(taskId) {
 
   openSharedMissionModal(task, activities || []);
 }
+  let sharedMemberNames = {};
 async function loadSharedTasks() {
   const card = $('sharedTasksCard');
   const list = $('sharedTasksList');
@@ -2685,7 +2788,27 @@ async function loadSharedTasks() {
   }
 
   const coupleId = coupleData[0].couple_id;
-  const date = today();
+const date = today();
+
+// Carrega os nomes dos participantes do casal.
+const { data: memberRows, error: memberError } =
+  await supabaseClient
+    .from('couple_members')
+    .select('user_id, display_name')
+    .eq('couple_id', coupleId);
+
+if (version !== sharedTasksLoadVersion) return;
+
+sharedMemberNames = {};
+
+if (memberError) {
+  console.error('Erro ao carregar nomes dos participantes:', memberError);
+} else {
+  (memberRows || []).forEach(member => {
+    sharedMemberNames[member.user_id] =
+      member.display_name || 'Nome não informado';
+  });
+}
 
   const { data: tasks, error: tasksError } =
     await supabaseClient
@@ -2757,7 +2880,7 @@ if (todayTasks.length) {
   const { data: missionActivities, error: activitiesError } =
     await supabaseClient
       .from('shared_mission_activities')
-      .select('id, task_id, activity_name, is_completed, points')
+      .select('id, task_id, activity_name, is_completed, completed_by, points')
       .in('task_id', taskIds)
       .order('created_at', { ascending: true });
 
