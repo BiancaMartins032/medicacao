@@ -959,6 +959,7 @@ body[data-theme="black"] .monthly-dot.missed {
 </select>
       
 
+
 <div id="sharedFields" style="display:none;">
 
   <div class="card">
@@ -980,19 +981,7 @@ body[data-theme="black"] .monthly-dot.missed {
       maxlength="100"
       placeholder="Ex.: Compras da semana"
     >
-
-   <label for="missionDetails">Informações da missão</label>
-<textarea
-  id="missionDetails"
-  maxlength="500"
-  placeholder="Informações que os dois poderão consultar..."
-></textarea>
-
-<button type="submit" id="saveSharedMissionButton">
-  Salvar missão
-</button>
-
-</div>
+  </div>
 
   <div id="missionSpecificFields">
 
@@ -1037,17 +1026,15 @@ body[data-theme="black"] .monthly-dot.missed {
 
     </div>
 
-    
-<div id="generalMissionFields" style="display:none;">
-  <div class="card">
-    <h3 id="missionChecklistTitle">Etapas da missão</h3>
-    <p>Selecione as atividades que vocês precisam realizar.</p>
-    <div id="generalMissionList"></div>
+    <div id="generalMissionFields" style="display:none;">
+      <div class="card">
+        <h3 id="missionChecklistTitle">Etapas da missão</h3>
+        <p>Selecione as atividades que vocês precisam realizar.</p>
+        <div id="generalMissionList"></div>
+      </div>
+    </div>
+
   </div>
-</div>
-
-
-   </div>
 
   <label for="missionDetails">Informações da missão</label>
   <textarea
@@ -1056,10 +1043,15 @@ body[data-theme="black"] .monthly-dot.missed {
     placeholder="Informações que os dois poderão consultar..."
   ></textarea>
 
+  <button type="submit" id="saveSharedMissionButton">
+    Salvar missão
+  </button>
+
 </div>
 
 
-<div id="individualFields">
+
+
       <label for="itemName">O que você precisa fazer?</label>
       <input id="itemName" required maxlength="100"
         placeholder="Ex.: Consulta, caminhada, estudar...">
@@ -2035,7 +2027,8 @@ function updateTaskType() {
 
 
 
-function updateMissionType() {
+
+async function updateMissionType() {
   const mission = $('missionType').value;
 
   const shoppingFields = $('shoppingMissionFields');
@@ -2063,46 +2056,78 @@ function updateMissionType() {
 
   const options = {
     housework: [
-      'Arrumar a cama',
-      'Lavar a louça',
-      'Varrer a casa',
-      'Passar pano no chão',
-      'Limpar os móveis',
-      'Lavar o banheiro',
-      'Organizar a cozinha',
-      'Retirar o lixo',
-      'Lavar as roupas',
-      'Estender as roupas',
-      'Guardar as roupas',
-      'Organizar os quartos'
+      ['Arrumar a cama', 2],
+      ['Lavar a louça', 5],
+      ['Varrer a casa', 5],
+      ['Passar pano no chão', 8],
+      ['Limpar os móveis', 5],
+      ['Lavar o banheiro', 10],
+      ['Organizar a cozinha', 5],
+      ['Retirar o lixo', 2],
+      ['Lavar as roupas', 5],
+      ['Estender as roupas', 3],
+      ['Guardar as roupas', 3],
+      ['Organizar os quartos', 5]
     ],
     trip: [
-      'Definir o destino',
-      'Reservar hospedagem',
-      'Comprar passagens',
-      'Organizar documentos',
-      'Preparar as malas',
-      'Planejar o roteiro'
+      ['Definir o destino', 5],
+      ['Reservar hospedagem', 5],
+      ['Comprar passagens', 5],
+      ['Organizar documentos', 5],
+      ['Preparar as malas', 5],
+      ['Planejar o roteiro', 5]
     ],
     finances: [
-      'Conferir as contas',
-      'Pagar contas pendentes',
-      'Organizar o orçamento',
-      'Conferir os gastos',
-      'Definir metas de economia'
+      ['Conferir as contas', 5],
+      ['Pagar contas pendentes', 5],
+      ['Organizar o orçamento', 8],
+      ['Conferir os gastos', 5],
+      ['Definir metas de economia', 8]
     ],
     other: []
   };
 
-  const checklist = $('generalMissionList');
-  checklist.style.display = 'grid';
-  checklist.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
-  checklist.style.gap = '10px';
-  const checklistTitle = $('missionChecklistTitle');
+  
+  // Busca os pontos personalizados do casal.
+  let savedDefaults = {};
 
+  try {
+    const { data: coupleData, error: coupleError } =
+      await supabaseClient.rpc('get_my_couple_status');
+
+    if (coupleError) throw coupleError;
+
+    if (coupleData && coupleData.length &&
+        coupleData[0].member_count >= 2) {
+
+      const coupleId = coupleData[0].couple_id;
+
+      const { data: defaults, error: defaultsError } =
+        await supabaseClient
+          .from('shared_activity_point_defaults')
+          .select('activity_name, points')
+          .eq('couple_id', coupleId);
+
+      if (defaultsError) throw defaultsError;
+
+      (defaults || []).forEach(item => {
+        const key = item.activity_name.trim().toLowerCase();
+        savedDefaults[key] = item.points;
+      });
+    }
+  } catch (error) {
+    console.error('Não foi possível carregar os pontos personalizados:', error);
+  }
+
+  const checklist = $('generalMissionList');
   checklist.replaceChildren();
 
-  const missionOptions = options[mission] || [];
+  checklist.style.display = 'grid';
+  checklist.style.gridTemplateColumns =
+    'repeat(2, minmax(0, 1fr))';
+  checklist.style.gap = '10px';
+
+  const checklistTitle = $('missionChecklistTitle');
 
   checklistTitle.textContent =
     mission === 'housework' ? 'Tarefas domésticas' :
@@ -2110,106 +2135,130 @@ function updateMissionType() {
     mission === 'finances' ? 'Tarefas financeiras' :
     'Etapas da missão';
 
-  
-missionOptions.forEach(option => {
-  const label = document.createElement('label');
-  label.style.display = 'flex';
-  label.style.alignItems = 'center';
-  label.style.gap = '10px';
-  label.style.padding = '12px';
-  label.style.margin = '8px 0';
-  label.style.border = '1px solid #E8E1D5';
-  label.style.borderRadius = '10px';
-  label.style.background = '#FFFFFF';
-  label.style.cursor = 'pointer';
+  function createActivity(name, points, checked = false) {
+    const card = document.createElement('label');
 
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.value = option;
-  checkbox.name = 'missionActivities';
+    card.style.display = 'flex';
+    card.style.alignItems = 'center';
+    card.style.gap = '8px';
+    card.style.padding = '10px';
+    card.style.margin = '0';
+    card.style.border = '1px solid #E8E1D5';
+    card.style.borderRadius = '10px';
+    card.style.background = '#FFFFFF';
+    card.style.cursor = 'pointer';
+    card.style.minWidth = '0';
 
-  const text = document.createElement('span');
-  text.textContent = option;
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.name = 'missionActivities';
+    checkbox.value = name;
+    checkbox.checked = checked;
+    checkbox.style.width = 'auto';
+    checkbox.style.margin = '0';
+    checkbox.style.flexShrink = '0';
 
-  label.append(checkbox, text);
-  checklist.append(label);
-});
+    const text = document.createElement('span');
+    text.textContent = name;
+    text.style.flex = '1';
+    text.style.minWidth = '0';
 
-const addActivityArea = document.createElement('div');
-addActivityArea.style.marginTop = '18px';
-addActivityArea.style.gridColumn = '1 / -1';
+    const pointsInput = document.createElement('input');
+    pointsInput.type = 'number';
+    pointsInput.min = '0';
+    pointsInput.step = '1';
+    pointsInput.value = points;
+    pointsInput.name = 'activityPoints';
+    pointsInput.title = 'Pontos desta atividade';
+    pointsInput.style.width = '58px';
+    pointsInput.style.padding = '6px';
+    pointsInput.style.margin = '0';
+    pointsInput.style.flexShrink = '0';
 
-const addActivityTitle = document.createElement('strong');
-addActivityTitle.textContent = 'Adicionar outra atividade';
-addActivityTitle.style.display = 'block';
-addActivityTitle.style.marginBottom = '8px';
+    const pointsLabel = document.createElement('small');
+    pointsLabel.textContent = 'pts';
+    pointsLabel.style.flexShrink = '0';
 
-const addActivityRow = document.createElement('div');
-addActivityRow.style.display = 'flex';
-addActivityRow.style.gap = '8px';
+    card.append(
+      checkbox,
+      text,
+      pointsInput,
+      pointsLabel
+    );
 
-const addActivityInput = document.createElement('input');
-addActivityInput.type = 'text';
-addActivityInput.maxLength = 100;
-addActivityInput.placeholder = 'Ex.: Limpar a geladeira';
-addActivityInput.style.flex = '1';
-addActivityInput.style.minWidth = '0';
-
-const addActivityButton = document.createElement('button');
-addActivityButton.type = 'button';
-addActivityButton.textContent = 'Adicionar';
-
-addActivityButton.addEventListener('click', () => {
-  const activity = addActivityInput.value.trim();
-
-  if (!activity) {
-    alert('Digite o nome da atividade.');
-    return;
+    checklist.append(card);
   }
 
-  const alreadyExists = Array.from(
-    checklist.querySelectorAll('input[name="missionActivities"]')
-  ).some(input =>
-    input.value.toLowerCase() === activity.toLowerCase()
+    (options[mission] || []).forEach(([name, points]) => {
+    const key = name.trim().toLowerCase();
+    const savedPoints = savedDefaults[key] ?? points;
+
+    createActivity(name, savedPoints);
+  });
+
+  const addActivityArea = document.createElement('div');
+  addActivityArea.style.gridColumn = '1 / -1';
+  addActivityArea.style.marginTop = '8px';
+
+  const addActivityTitle = document.createElement('strong');
+  addActivityTitle.textContent = 'Adicionar outra atividade';
+  addActivityTitle.style.display = 'block';
+  addActivityTitle.style.marginBottom = '8px';
+
+  const addActivityRow = document.createElement('div');
+  addActivityRow.style.display = 'flex';
+  addActivityRow.style.gap = '8px';
+
+  const addActivityInput = document.createElement('input');
+  addActivityInput.type = 'text';
+  addActivityInput.maxLength = 100;
+  addActivityInput.placeholder = 'Ex.: Limpar a geladeira';
+  addActivityInput.style.flex = '1';
+  addActivityInput.style.minWidth = '0';
+
+  const addActivityButton = document.createElement('button');
+  addActivityButton.type = 'button';
+  addActivityButton.textContent = 'Adicionar';
+
+  addActivityButton.addEventListener('click', () => {
+    const activity = addActivityInput.value.trim();
+
+    if (!activity) {
+      alert('Digite o nome da atividade.');
+      return;
+    }
+
+    const alreadyExists = Array.from(
+      checklist.querySelectorAll('input[name="missionActivities"]')
+    ).some(input =>
+      input.value.toLowerCase() === activity.toLowerCase()
+    );
+
+    if (alreadyExists) {
+      alert('Essa atividade já está na lista.');
+      return;
+    }
+
+     const key = activity.trim().toLowerCase();
+    const savedPoints = savedDefaults[key] ?? 5;
+
+    createActivity(activity, savedPoints, true);
+    addActivityInput.value = '';
+  });
+
+  addActivityRow.append(
+    addActivityInput,
+    addActivityButton
   );
 
-  if (alreadyExists) {
-    alert('Essa atividade já está na lista.');
-    return;
-  }
+  addActivityArea.append(
+    addActivityTitle,
+    addActivityRow
+  );
 
-  const label = document.createElement('label');
-  label.style.display = 'flex';
-  label.style.alignItems = 'center';
-  label.style.gap = '10px';
-  label.style.padding = '12px';
-  label.style.margin = '8px 0';
-  label.style.border = '1px solid #E8E1D5';
-  label.style.borderRadius = '10px';
-  label.style.background = '#FFFFFF';
-  label.style.cursor = 'pointer';
-
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.name = 'missionActivities';
-  checkbox.value = activity;
-  checkbox.checked = true;
-
-  const text = document.createElement('span');
-  text.textContent = activity;
-
-  label.append(checkbox, text);
-  checklist.insertBefore(label, addActivityArea);
-
-  addActivityInput.value = '';
-});
-
-addActivityRow.append(addActivityInput, addActivityButton);
-addActivityArea.append(addActivityTitle, addActivityRow);
-checklist.append(addActivityArea);
-
-
+  checklist.append(addActivityArea);
 }
+
 
 $('taskType').addEventListener('change', updateTaskType);
 $('missionType').addEventListener('change', updateMissionType);
@@ -2603,6 +2652,7 @@ async function loadSharedTasks() {
 }
 
 
+
 async function saveSharedMission() {
   try {
     const { data: userData, error: userError } =
@@ -2628,11 +2678,37 @@ async function saveSharedMission() {
       return false;
     }
 
-    const activities = Array.from(
+    const selectedInputs = Array.from(
       document.querySelectorAll(
         '#generalMissionList input[name="missionActivities"]:checked'
       )
-    ).map(input => input.value.trim()).filter(Boolean);
+    );
+
+    const activities = selectedInputs.map(checkbox => {
+      const card = checkbox.closest('label');
+      const pointsInput = card.querySelector(
+        'input[name="activityPoints"]'
+      );
+
+      const rawPoints = pointsInput ? pointsInput.value.trim() : '';
+      const points = Number(rawPoints);
+
+      if (
+        rawPoints === '' ||
+        !Number.isInteger(points) ||
+        points < 0 ||
+        points > 10000
+      ) {
+        throw new Error(
+          `Informe uma pontuação inteira entre 0 e 10000 para "${checkbox.value}".`
+        );
+      }
+
+      return {
+        name: checkbox.value.trim(),
+        points
+      };
+    }).filter(activity => activity.name);
 
     if (missionType !== 'supermarket' && activities.length === 0) {
       alert('Selecione ou adicione pelo menos uma atividade.');
@@ -2644,9 +2720,14 @@ async function saveSharedMission() {
 
     if (coupleError) throw coupleError;
 
-    if (!coupleData || !coupleData.length ||
-        coupleData[0].member_count < 2) {
-      alert('É necessário estar conectado a um parceiro para criar uma missão compartilhada.');
+    if (
+      !coupleData ||
+      !coupleData.length ||
+      coupleData[0].member_count < 2
+    ) {
+      alert(
+        'É necessário estar conectado a um parceiro para criar uma missão compartilhada.'
+      );
       return false;
     }
 
@@ -2675,7 +2756,8 @@ async function saveSharedMission() {
     if (activities.length > 0) {
       const activityRows = activities.map(activity => ({
         task_id: savedMission.id,
-        activity_name: activity,
+        activity_name: activity.name,
+        points: activity.points,
         created_by: userId
       }));
 
@@ -2692,6 +2774,65 @@ async function saveSharedMission() {
 
         throw activitiesError;
       }
+
+      // Atualiza os pontos padrão compartilhados pelo casal.
+      try {
+        const { data: existingDefaults, error: defaultsError } =
+          await supabaseClient
+            .from('shared_activity_point_defaults')
+            .select('id, activity_name')
+            .eq('couple_id', coupleId);
+
+        if (defaultsError) throw defaultsError;
+
+        const defaultsByName = new Map(
+          (existingDefaults || []).map(item => [
+            item.activity_name.trim().toLowerCase(),
+            item.id
+          ])
+        );
+
+        for (const activity of activities) {
+          const key = activity.name.trim().toLowerCase();
+          const existingId = defaultsByName.get(key);
+
+          if (existingId) {
+            const { error: updateError } =
+              await supabaseClient
+                .from('shared_activity_point_defaults')
+                .update({
+                  points: activity.points,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', existingId);
+
+            if (updateError) throw updateError;
+
+          } else {
+            const { error: insertError } =
+              await supabaseClient
+                .from('shared_activity_point_defaults')
+                .insert({
+                  couple_id: coupleId,
+                  activity_name: activity.name,
+                  points: activity.points,
+                  created_by: userId
+                });
+
+            if (insertError) throw insertError;
+          }
+        }
+
+      } catch (defaultsError) {
+        console.error(
+          'A missão foi salva, mas os pontos padrão não foram atualizados:',
+          defaultsError
+        );
+
+        alert(
+          'A missão foi salva, mas não foi possível atualizar os pontos padrão do casal. As atividades desta missão mantiveram seus pontos.'
+        );
+      }
     }
 
     alert('Missão compartilhada salva com sucesso!');
@@ -2703,6 +2844,7 @@ async function saveSharedMission() {
     return false;
   }
 }
+
 
 
   
