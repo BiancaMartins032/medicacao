@@ -975,11 +975,11 @@ body[data-theme="black"] .monthly-dot.missed {
     >
 
     <label for="missionDetails">Informações da missão</label>
-    <textarea
-      id="missionDetails"
-      maxlength="500"
-      placeholder="Informações que os dois poderão consultar..."
-    ></textarea>
+<textarea
+  id="missionDetails"
+  maxlength="500"
+  placeholder="Informações que os dois poderão consultar..."
+></textarea>
   </div>
 
   <div id="missionSpecificFields">
@@ -1035,7 +1035,14 @@ body[data-theme="black"] .monthly-dot.missed {
 </div>
 
 
-  </div>
+   </div>
+
+  <label for="missionDetails">Informações da missão</label>
+  <textarea
+    id="missionDetails"
+    maxlength="500"
+    placeholder="Informações que os dois poderão consultar..."
+  ></textarea>
 
 </div>
 
@@ -2083,23 +2090,102 @@ function updateMissionType() {
     mission === 'finances' ? 'Tarefas financeiras' :
     'Etapas da missão';
 
-  missionOptions.forEach(option => {
-    const label = document.createElement('label');
-    label.style.display = 'flex';
-    label.style.alignItems = 'center';
-    label.style.gap = '8px';
-    label.style.margin = '10px 0';
+  
+missionOptions.forEach(option => {
+  const label = document.createElement('label');
+  label.style.display = 'flex';
+  label.style.alignItems = 'center';
+  label.style.gap = '10px';
+  label.style.padding = '12px';
+  label.style.margin = '8px 0';
+  label.style.border = '1px solid #E8E1D5';
+  label.style.borderRadius = '10px';
+  label.style.background = '#FFFFFF';
+  label.style.cursor = 'pointer';
 
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.value = option;
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.value = option;
+  checkbox.name = 'missionActivities';
 
-    const text = document.createElement('span');
-    text.textContent = option;
+  const text = document.createElement('span');
+  text.textContent = option;
 
-    label.append(checkbox, text);
-    checklist.append(label);
-  });
+  label.append(checkbox, text);
+  checklist.append(label);
+});
+
+const addActivityArea = document.createElement('div');
+addActivityArea.style.marginTop = '18px';
+
+const addActivityTitle = document.createElement('strong');
+addActivityTitle.textContent = 'Adicionar outra atividade';
+addActivityTitle.style.display = 'block';
+addActivityTitle.style.marginBottom = '8px';
+
+const addActivityRow = document.createElement('div');
+addActivityRow.style.display = 'flex';
+addActivityRow.style.gap = '8px';
+
+const addActivityInput = document.createElement('input');
+addActivityInput.type = 'text';
+addActivityInput.maxLength = 100;
+addActivityInput.placeholder = 'Ex.: Limpar a geladeira';
+addActivityInput.style.flex = '1';
+addActivityInput.style.minWidth = '0';
+
+const addActivityButton = document.createElement('button');
+addActivityButton.type = 'button';
+addActivityButton.textContent = 'Adicionar';
+
+addActivityButton.addEventListener('click', () => {
+  const activity = addActivityInput.value.trim();
+
+  if (!activity) {
+    alert('Digite o nome da atividade.');
+    return;
+  }
+
+  const alreadyExists = Array.from(
+    checklist.querySelectorAll('input[name="missionActivities"]')
+  ).some(input =>
+    input.value.toLowerCase() === activity.toLowerCase()
+  );
+
+  if (alreadyExists) {
+    alert('Essa atividade já está na lista.');
+    return;
+  }
+
+  const label = document.createElement('label');
+  label.style.display = 'flex';
+  label.style.alignItems = 'center';
+  label.style.gap = '10px';
+  label.style.padding = '12px';
+  label.style.margin = '8px 0';
+  label.style.border = '1px solid #E8E1D5';
+  label.style.borderRadius = '10px';
+  label.style.background = '#FFFFFF';
+  label.style.cursor = 'pointer';
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.name = 'missionActivities';
+  checkbox.value = activity;
+  checkbox.checked = true;
+
+  const text = document.createElement('span');
+  text.textContent = activity;
+
+  label.append(checkbox, text);
+  checklist.insertBefore(label, addActivityArea);
+
+  addActivityInput.value = '';
+});
+
+addActivityRow.append(addActivityInput, addActivityButton);
+addActivityArea.append(addActivityTitle, addActivityRow);
+checklist.append(addActivityArea);
 
   if (mission === 'other') {
   checklist.textContent =
