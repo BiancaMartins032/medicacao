@@ -1990,21 +1990,25 @@ function applyTheme() {
 
 
 
+
 function updateTaskType() {
   const type = $('taskType').value;
-  const sharedFields = $('sharedFields');
 
-  sharedFields.style.display = type === 'shared' ? 'block' : 'none';
+  const sharedFields = $('sharedFields');
+  const individualFields = $('individualFields');
+
+  sharedFields.style.display =
+    type === 'shared' ? 'block' : 'none';
+
+  individualFields.style.display =
+    type === 'shared' ? 'none' : 'block';
 
   if (type !== 'shared') {
     $('missionType').value = '';
     updateMissionType();
-    const individualFields = $('individualFields');
-
-individualFields.style.display =
-  type === 'shared' ? 'none' : 'block';
   }
 }
+
 
 
 function updateMissionType() {
