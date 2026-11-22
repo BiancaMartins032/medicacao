@@ -2102,10 +2102,13 @@ function updateMissionType() {
   });
 
   if (mission === 'other') {
-    checklist.textContent =
-      'Em breve vocês poderão adicionar etapas personalizadas.';
+  checklist.textContent =
+    'Em breve vocês poderão adicionar etapas personalizadas.';
   }
 }
+
+$('taskType').addEventListener('change', updateTaskType);
+$('missionType').addEventListener('change', updateMissionType);
 
 
 
