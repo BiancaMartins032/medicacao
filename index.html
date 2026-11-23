@@ -3016,14 +3016,30 @@ if (isFurnitureMission) {
   menuTitle.style.lineHeight = '1.4';
   menuTitle.style.marginBottom = '10px';
 
-  roomMenu.append(menuTitle);
-  const closeMenuButton = document.createElement('button');
+  const menuHeader = document.createElement('div');
+menuHeader.style.display = 'flex';
+menuHeader.style.alignItems = 'flex-start';
+menuHeader.style.justifyContent = 'space-between';
+menuHeader.style.gap = '10px';
+menuHeader.style.marginBottom = '10px';
+
+menuTitle.style.flex = '1';
+menuTitle.style.marginBottom = '0';
+
+const closeMenuButton = document.createElement('button');
 closeMenuButton.type = 'button';
-closeMenuButton.textContent = '✕ Fechar';
+closeMenuButton.textContent = '×';
 closeMenuButton.className = 'secondary';
-closeMenuButton.style.display = 'block';
-closeMenuButton.style.width = '100%';
-closeMenuButton.style.marginBottom = '10px';
+closeMenuButton.title = 'Fechar';
+closeMenuButton.setAttribute('aria-label', 'Fechar menu');
+closeMenuButton.style.width = '30px';
+closeMenuButton.style.height = '30px';
+closeMenuButton.style.minWidth = '30px';
+closeMenuButton.style.padding = '0';
+closeMenuButton.style.margin = '0';
+closeMenuButton.style.fontSize = '22px';
+closeMenuButton.style.lineHeight = '1';
+closeMenuButton.style.flexShrink = '0';
 
 closeMenuButton.addEventListener('click', (event) => {
   event.preventDefault();
@@ -3031,7 +3047,8 @@ closeMenuButton.addEventListener('click', (event) => {
   roomMenu.style.display = 'none';
 });
 
-roomMenu.append(closeMenuButton);
+menuHeader.append(menuTitle, closeMenuButton);
+roomMenu.append(menuHeader);
 
   roomList.forEach(room => {
     const roomButton = document.createElement('button');
