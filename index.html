@@ -2687,7 +2687,7 @@ let sharedTasksLoadVersion = 0;
 
   let currentSharedMissionId = null;
   
-function openSharedMissionModal(task, activities) {
+function openSharedMissionModal(task, activities, quotes = [], purchases = []) {
   const modal = $('sharedMissionModal');
   currentSharedMissionId = task.id;
 
@@ -2695,6 +2695,455 @@ function openSharedMissionModal(task, activities) {
 
   const isFurnitureMission =
     (task.title || '').trim().toLowerCase() === 'mobiliar a casa';
+  // Organiza as cotações por móvel.
+const quotesByActivity = {};
+
+(quotes || []).forEach(quote => {
+  if (!quotesByActivity[quote.activity_id]) {
+    quotesByActivity[quote.activity_id] = [];
+  }
+
+  quotesByActivity[quote.activity_id].push(quote);
+});
+
+// Localiza a compra confirmada de cada móvel.
+const purchasesByActivity = {};
+
+(purchases || []).forEach(purchase => {
+  purchasesByActivity[purchase.activity_id] = purchase;
+});
+  
+function openFurnitureItemScreen(activity) {
+  // Evita abrir duas telas individuais ao mesmo tempo.
+  const previousScreen = document.getElementById(
+    'furnitureItemDetailScreen'
+  );
+
+  if (previousScreen) previousScreen.remove();
+
+  const itemQuotes = quotesByActivity[activity.id] || [];
+  const purchase = purchasesByActivity[activity.id];
+
+  const screen = document.createElement('div');
+  screen.id = 'furnitureItemDetailScreen';
+  screen.style.position = 'fixed';
+  screen.style.inset = '0';
+  screen.style.zIndex = '10000';
+  screen.style.background = 'var(--bg)';
+  screen.style.color = 'var(--text)';
+  screen.style.overflowY = 'auto';
+  screen.style.padding = '20px';
+  screen.style.boxSizing = 'border-box';
+
+  const content = document.createElement('div');
+  content.style.width = '100%';
+  content.style.maxWidth = '650px';
+  content.style.margin = '0 auto';
+
+  // Cabeçalho e botão voltar
+  const header = document.createElement('div');
+  header.style.display = 'flex';
+  header.style.alignItems = 'center';
+  header.style.gap = '12px';
+  header.style.marginBottom = '24px';
+
+  const backButton = document.createElement('button');
+  backButton.type = 'button';
+  backButton.className = 'secondary';
+  backButton.textContent = '←';
+  backButton.title = 'Voltar à lista de móveis';
+  backButton.style.width = '42px';
+  backButton.style.height = '42px';
+  backButton.style.padding = '0';
+  backButton.style.fontSize = '23px';
+
+  backButton.addEventListener('click', () => {
+    screen.remove();
+  });
+
+  const heading = document.createElement('strong');
+  heading.textContent = activity.activity_name;
+  heading.style.fontSize = '19px';
+  heading.style.overflowWrap = 'anywhere';
+
+  header.append(backButton, heading);
+
+  // Cartão de informações do móvel
+  const infoCard = document.createElement('div');
+  infoCard.style.background = 'var(--card)';
+  infoCard.style.border = '1px solid var(--border)';
+  infoCard.style.borderRadius = '16px';
+  infoCard.style.padding = '18px';
+  infoCard.style.marginBottom = '18px';
+
+  const referenceLabel = document.createElement('div');
+  referenceLabel.textContent = 'Valor de referência';
+  referenceLabel.style.fontSize = '13px';
+  referenceLabel.style.color = 'var(--muted)';
+  referenceLabel.style.marginBottom = '6px';
+
+  const referenceValue = document.createElement('strong');
+  referenceValue.textContent = activity.item_price == null
+    ? 'Valor não informado'
+    : moneyFormat.format(Number(activity.item_price));
+  referenceValue.style.fontSize = '21px';
+
+  const status = document.createElement('div');
+  status.textContent = purchase
+    ? 'Compra confirmada'
+    : 'Ainda não comprado';
+  status.style.marginTop = '14px';
+  status.style.fontSize = '13px';
+  status.style.fontWeight = '700';
+  status.style.color = purchase ? '#238653' : 'var(--muted)';
+
+  infoCard.append(referenceLabel, referenceValue, status);
+
+  // Seção de cotações
+  const quotesCard = document.createElement('div');
+  quotesCard.style.background = 'var(--card)';
+  quotesCard.style.border = '1px solid var(--border)';
+  quotesCard.style.borderRadius = '16px';
+  quotesCard.style.padding = '18px';
+  quotesCard.style.marginBottom = '18px';
+
+  const quotesTitle = document.createElement('strong');
+  quotesTitle.textContent = 'Cotações';
+  quotesTitle.style.fontSize = '16px';
+
+  const quotesDescription = document.createElement('p');
+  quotesDescription.textContent = itemQuotes.length
+    ? 'Cotações registradas para este móvel:'
+    : 'Você ainda não cadastrou cotações para este móvel.';
+  quotesDescription.style.fontSize = '13px';
+  quotesDescription.style.color = 'var(--muted)';
+  quotesDescription.style.lineHeight = '1.5';
+
+  quotesCard.append(quotesTitle, quotesDescription);
+  
+  // Botão para abrir o formulário de nova cotação.
+  const addQuoteButton = document.createElement('button');
+  addQuoteButton.type = 'button';
+  addQuoteButton.textContent = '+ Adicionar cotação';
+  addQuoteButton.style.width = '100%';
+  addQuoteButton.style.padding = '12px';
+  addQuoteButton.style.marginTop = '12px';
+  addQuoteButton.style.border = 'none';
+  addQuoteButton.style.borderRadius = '10px';
+  addQuoteButton.style.background = 'var(--accent)';
+  addQuoteButton.style.color = '#FFFFFF';
+  addQuoteButton.style.fontWeight = '700';
+  addQuoteButton.style.cursor = 'pointer';
+
+  const quoteForm = document.createElement('div');
+  quoteForm.style.display = 'none';
+  quoteForm.style.marginTop = '16px';
+  quoteForm.style.padding = '14px';
+  quoteForm.style.border = '1px solid var(--border)';
+  quoteForm.style.borderRadius = '12px';
+
+  function createQuoteField(labelText, element) {
+    const wrapper = document.createElement('label');
+    wrapper.style.display = 'block';
+    wrapper.style.marginBottom = '13px';
+    wrapper.style.fontSize = '13px';
+    wrapper.style.fontWeight = '600';
+    wrapper.style.color = 'var(--text)';
+
+    const label = document.createElement('div');
+    label.textContent = labelText;
+    label.style.marginBottom = '6px';
+
+    element.style.width = '100%';
+    element.style.boxSizing = 'border-box';
+    element.style.padding = '11px';
+    element.style.border = '1px solid var(--border)';
+    element.style.borderRadius = '8px';
+    element.style.background = 'var(--input)';
+    element.style.color = 'var(--text)';
+    element.style.fontSize = '14px';
+
+    wrapper.append(label, element);
+    quoteForm.appendChild(wrapper);
+  }
+
+  const storeInput = document.createElement('input');
+  storeInput.type = 'text';
+  storeInput.placeholder = 'Ex.: Mercado Livre, Magazine Luiza...';
+  storeInput.maxLength = 100;
+  createQuoteField('Nome da loja', storeInput);
+
+  const storeTypeSelect = document.createElement('select');
+  [
+    ['online', 'Loja on-line'],
+    ['physical', 'Loja física'],
+    ['both', 'Loja física e on-line']
+  ].forEach(([value, label]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    storeTypeSelect.appendChild(option);
+  });
+  createQuoteField('Tipo de loja', storeTypeSelect);
+
+  const deliverySelect = document.createElement('select');
+
+  function updateDeliveryOptions() {
+    deliverySelect.innerHTML = '';
+
+    const deliveryOption = document.createElement('option');
+    deliveryOption.value = 'delivery';
+    deliveryOption.textContent = 'Entrega';
+    deliverySelect.appendChild(deliveryOption);
+
+    if (storeTypeSelect.value !== 'online') {
+      const pickupOption = document.createElement('option');
+      pickupOption.value = 'pickup';
+      pickupOption.textContent = 'Retirada na loja';
+      deliverySelect.appendChild(pickupOption);
+    }
+
+    updateShippingField();
+  }
+
+  const shippingInput = document.createElement('input');
+  shippingInput.type = 'number';
+  shippingInput.min = '0';
+  shippingInput.step = '0.01';
+  shippingInput.placeholder = 'Ex.: 35,00';
+  shippingInput.value = '0';
+
+  function updateShippingField() {
+    const isPickup = deliverySelect.value === 'pickup';
+    shippingInput.disabled = isPickup;
+    shippingInput.value = isPickup ? '0' : shippingInput.value;
+    shippingInput.style.opacity = isPickup ? '0.5' : '1';
+  }
+
+  createQuoteField('Modalidade de recebimento', deliverySelect);
+  createQuoteField('Valor do frete (R$)', shippingInput);
+
+  const productPriceInput = document.createElement('input');
+  productPriceInput.type = 'number';
+  productPriceInput.min = '0';
+  productPriceInput.step = '0.01';
+  productPriceInput.placeholder = 'Ex.: 1299,90';
+  createQuoteField('Preço do produto (R$)', productPriceInput);
+
+  storeTypeSelect.addEventListener('change', updateDeliveryOptions);
+  deliverySelect.addEventListener('change', updateShippingField);
+  updateDeliveryOptions();
+
+  const saveQuoteButton = document.createElement('button');
+  saveQuoteButton.type = 'button';
+  saveQuoteButton.textContent = 'Salvar cotação';
+  saveQuoteButton.style.width = '100%';
+  saveQuoteButton.style.padding = '12px';
+  saveQuoteButton.style.border = 'none';
+  saveQuoteButton.style.borderRadius = '10px';
+  saveQuoteButton.style.background = 'var(--accent)';
+  saveQuoteButton.style.color = '#FFFFFF';
+  saveQuoteButton.style.fontWeight = '700';
+  saveQuoteButton.style.cursor = 'pointer';
+
+  const cancelQuoteButton = document.createElement('button');
+  cancelQuoteButton.type = 'button';
+  cancelQuoteButton.textContent = 'Cancelar';
+  cancelQuoteButton.style.width = '100%';
+  cancelQuoteButton.style.padding = '10px';
+  cancelQuoteButton.style.marginTop = '8px';
+  cancelQuoteButton.style.border = '1px solid var(--border)';
+  cancelQuoteButton.style.borderRadius = '10px';
+  cancelQuoteButton.style.background = 'var(--card)';
+  cancelQuoteButton.style.color = 'var(--text)';
+  cancelQuoteButton.style.cursor = 'pointer';
+
+  addQuoteButton.addEventListener('click', () => {
+    quoteForm.style.display =
+      quoteForm.style.display === 'none' ? 'block' : 'none';
+  });
+
+  cancelQuoteButton.addEventListener('click', () => {
+    quoteForm.style.display = 'none';
+  });
+
+  saveQuoteButton.addEventListener('click', async () => {
+    const storeName = storeInput.value.trim();
+    const productPrice = Number(productPriceInput.value);
+    const shippingCost = Number(shippingInput.value || 0);
+
+    if (!storeName) {
+      alert('Informe o nome da loja.');
+      storeInput.focus();
+      return;
+    }
+
+    if (
+      productPriceInput.value.trim() === '' ||
+      !Number.isFinite(productPrice) ||
+      productPrice < 0
+    ) {
+      alert('Informe um preço válido para o produto.');
+      productPriceInput.focus();
+      return;
+    }
+
+    if (
+      !Number.isFinite(shippingCost) ||
+      shippingCost < 0
+    ) {
+      alert('Informe um valor válido para o frete.');
+      shippingInput.focus();
+      return;
+    }
+
+    if (
+      deliverySelect.value === 'pickup' &&
+      shippingCost !== 0
+    ) {
+      alert('A retirada na loja não pode ter frete.');
+      return;
+    }
+
+    saveQuoteButton.disabled = true;
+    saveQuoteButton.textContent = 'Salvando...';
+
+    const { data: savedQuote, error: quoteError } =
+      await supabaseClient
+        .from('shared_furniture_quotes')
+        .insert({
+          activity_id: activity.id,
+          store_name: storeName,
+          store_type: storeTypeSelect.value,
+          product_price: productPrice,
+          delivery_method: deliverySelect.value,
+          shipping_cost: shippingCost
+        })
+        .select()
+        .single();
+
+    if (quoteError) {
+      console.error('Erro ao salvar cotação:', quoteError);
+      alert('Não foi possível salvar a cotação. Tente novamente.');
+      saveQuoteButton.disabled = false;
+      saveQuoteButton.textContent = 'Salvar cotação';
+      return;
+    }
+
+    quotesByActivity[activity.id] =
+      quotesByActivity[activity.id] || [];
+
+    quotesByActivity[activity.id].push(savedQuote);
+
+    screen.remove();
+    openFurnitureItemScreen(activity);
+  });
+
+  quoteForm.append(saveQuoteButton, cancelQuoteButton);
+  quotesCard.append(addQuoteButton, quoteForm);
+
+
+  itemQuotes.forEach(quote => {
+    const quoteCard = document.createElement('div');
+    quoteCard.style.padding = '12px';
+    quoteCard.style.marginTop = '10px';
+    quoteCard.style.border = '1px solid var(--border)';
+    quoteCard.style.borderRadius = '12px';
+
+    const store = document.createElement('strong');
+    store.textContent = quote.store_name;
+    store.style.display = 'block';
+    store.style.fontSize = '14px';
+
+    const total = Number(quote.product_price || 0) +
+      Number(quote.shipping_cost || 0);
+
+    const price = document.createElement('div');
+    price.textContent = 'Produto: ' +
+      moneyFormat.format(Number(quote.product_price || 0));
+    price.style.marginTop = '7px';
+    price.style.fontSize = '13px';
+
+    const shipping = document.createElement('div');
+    shipping.textContent = 'Frete: ' +
+      (Number(quote.shipping_cost || 0) === 0
+        ? 'Grátis'
+        : moneyFormat.format(Number(quote.shipping_cost)));
+    shipping.style.marginTop = '4px';
+    shipping.style.fontSize = '13px';
+
+    const method = document.createElement('div');
+    method.textContent = quote.delivery_method === 'pickup'
+      ? 'Retirada na loja'
+      : 'Entrega';
+    method.style.marginTop = '4px';
+    method.style.fontSize = '13px';
+
+    const totalValue = document.createElement('strong');
+    totalValue.textContent = 'Total: ' + moneyFormat.format(total);
+    totalValue.style.display = 'block';
+    totalValue.style.marginTop = '9px';
+    totalValue.style.fontSize = '14px';
+
+    quoteCard.append(store, price, shipping, method, totalValue);
+    quotesCard.appendChild(quoteCard);
+  });
+
+  // Seção da compra confirmada
+  const purchaseCard = document.createElement('div');
+  purchaseCard.style.background = 'var(--card)';
+  purchaseCard.style.border = '1px solid var(--border)';
+  purchaseCard.style.borderRadius = '16px';
+  purchaseCard.style.padding = '18px';
+
+  const purchaseTitle = document.createElement('strong');
+  purchaseTitle.textContent = 'Registro de compra';
+  purchaseTitle.style.fontSize = '16px';
+
+  purchaseCard.appendChild(purchaseTitle);
+
+  const purchaseDescription = document.createElement('p');
+  purchaseDescription.style.fontSize = '13px';
+  purchaseDescription.style.color = 'var(--muted)';
+  purchaseDescription.style.lineHeight = '1.5';
+
+  if (purchase) {
+    const actualTotal =
+      Number(purchase.product_price || 0) +
+      Number(purchase.shipping_cost || 0);
+
+    purchaseDescription.textContent =
+      'Loja: ' + purchase.store_name +
+      '\nProduto pago: ' +
+      moneyFormat.format(Number(purchase.product_price || 0)) +
+      '\nFrete pago: ' +
+      moneyFormat.format(Number(purchase.shipping_cost || 0)) +
+      '\nRecebimento: ' +
+      (purchase.delivery_method === 'pickup'
+        ? 'Retirada na loja'
+        : 'Entrega') +
+      '\nTotal gasto: ' + moneyFormat.format(actualTotal);
+
+    purchaseDescription.style.whiteSpace = 'pre-line';
+  } else {
+    purchaseDescription.textContent =
+      'A compra deste móvel ainda não foi registrada. ' +
+      'O gasto só será contabilizado depois da confirmação da compra.';
+  }
+
+  purchaseCard.appendChild(purchaseDescription);
+
+  content.append(
+    header,
+    infoCard,
+    quotesCard,
+    purchaseCard
+  );
+
+  screen.appendChild(content);
+  document.body.appendChild(screen);
+}
+
 
   const valueLabel = $('newSharedActivityValueLabel');
   const valueInput = $('newSharedActivityPoints');
@@ -3250,7 +3699,7 @@ const roomActivities = activities.filter(activity =>
 );
 
 const purchasedCount = roomActivities.filter(activity =>
-  activity.is_completed
+  Boolean(purchasesByActivity[activity.id])
 ).length;
 
 const pendingCount = roomActivities.length - purchasedCount;
@@ -3556,6 +4005,19 @@ roomMenu.append(menuHeader);
 
     const name = document.createElement('span');
     name.textContent = activity.activity_name;
+  
+if (isFurnitureMission) {
+  name.style.cursor = 'pointer';
+  name.title = 'Abrir detalhes do móvel';
+
+  name.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    openFurnitureItemScreen(activity);
+  });
+}
+
     name.style.flex = '1';
 name.style.minWidth = '110px';
 name.style.overflowWrap = 'anywhere';
@@ -3563,10 +4025,10 @@ name.style.fontSize = '14px';
 name.style.fontWeight = '650';
 name.style.lineHeight = '1.45';
 name.style.color = 'var(--text)';
-    if (activity.is_completed) {
-      name.style.textDecoration = 'line-through';
-      name.style.opacity = '0.65';
-    }
+    if (purchasesByActivity[activity.id]) {
+  name.style.textDecoration = 'line-through';
+  name.style.opacity = '0.65';
+}
 
     const completedBy = document.createElement('span');
     completedBy.style.fontSize = '12px';
@@ -3584,7 +4046,8 @@ name.style.color = 'var(--text)';
           ? null
           : Number(activity.item_price);
 
-      if (itemPrice !== null && Number.isFinite(itemPrice)) {
+      
+if (itemPrice !== null && Number.isFinite(itemPrice)) {
   totalPredicted += itemPrice;
 
   const furnitureRoom = activity.room || 'Sem cômodo';
@@ -3592,15 +4055,25 @@ name.style.color = 'var(--text)';
   if (roomTotals[furnitureRoom]) {
     roomTotals[furnitureRoom].predicted += itemPrice;
   }
+}
 
-  if (activity.is_completed) {
-    totalSpent += itemPrice;
+// O gasto considera somente compras efetivamente registradas.
+const confirmedPurchase = purchasesByActivity[activity.id];
 
-    if (roomTotals[furnitureRoom]) {
-      roomTotals[furnitureRoom].spent += itemPrice;
-    }
+if (confirmedPurchase) {
+  const actualSpent =
+    Number(confirmedPurchase.product_price || 0) +
+    Number(confirmedPurchase.shipping_cost || 0);
+
+  totalSpent += actualSpent;
+
+  const furnitureRoom = activity.room || 'Sem cômodo';
+
+  if (roomTotals[furnitureRoom]) {
+    roomTotals[furnitureRoom].spent += actualSpent;
   }
 }
+
 
       itemInfo = document.createElement('div');
       itemInfo.style.display = 'flex';
@@ -3610,64 +4083,22 @@ name.style.color = 'var(--text)';
       itemInfo.style.minWidth = '120px';
       itemInfo.style.maxWidth = '100%';
 
-      const priceInput = document.createElement('input');
-      priceInput.type = 'text';
-      priceInput.inputMode = 'decimal';
-      priceInput.placeholder = 'R$ 0,00';
-      priceInput.value = itemPrice === null
-        ? ''
-        : itemPrice.toFixed(2).replace('.', ',');
-      priceInput.style.width = '120px';
-      priceInput.style.maxWidth = '100%';
-      priceInput.style.boxSizing = 'border-box';
-      priceInput.style.textAlign = 'right';
-      priceInput.style.maxWidth = '100%';
-      priceInput.style.boxSizing = 'border-box';
-      priceInput.style.padding = '8px';
-      priceInput.style.textAlign = 'right';
-      priceInput.style.fontSize = '14px';
-      priceInput.style.borderRadius = '8px';
+      const priceDisplay = document.createElement('span');
 
-      priceInput.addEventListener('change', async () => {
-        const raw = priceInput.value.trim();
-        let newPrice = null;
+priceDisplay.textContent = itemPrice === null
+  ? 'Valor não informado'
+  : moneyFormat.format(itemPrice);
 
-        if (raw !== '') {
-          let normalized = raw.replace(/\s/g, '');
-
-          if (normalized.includes(',')) {
-            normalized = normalized.replace(/\./g, '').replace(',', '.');
-          }
-
-          newPrice = Number(normalized);
-
-          if (!Number.isFinite(newPrice) || newPrice < 0) {
-            alert('Informe um valor válido em reais.');
-            priceInput.value = itemPrice === null
-              ? ''
-              : itemPrice.toFixed(2).replace('.', ',');
-            return;
-          }
-        }
-
-        priceInput.disabled = true;
-
-        const { error } = await supabaseClient
-          .from('shared_mission_activities')
-          .update({ item_price: newPrice })
-          .eq('id', activity.id);
-
-        if (error) {
-          console.error('Erro ao atualizar preço:', error);
-          alert('Não foi possível salvar o valor.');
-        }
-
-        await openSharedMissionWithFreshData(task.id);
-        await loadSharedTasks();
-      });
+priceDisplay.style.fontSize = '14px';
+priceDisplay.style.fontWeight = '700';
+priceDisplay.style.color = 'var(--text)';
+priceDisplay.style.textAlign = 'right';
+priceDisplay.style.overflowWrap = 'anywhere';
+priceDisplay.style.width = '100%';
+priceDisplay.style.padding = '8px 0';
 
       const status = document.createElement('span');
-status.textContent = activity.is_completed
+status.textContent = purchasesByActivity[activity.id]
   ? 'Comprado'
   : 'Falta comprar';
 
@@ -3679,7 +4110,7 @@ status.style.padding = '5px 9px';
 status.style.borderRadius = '20px';
 status.style.whiteSpace = 'nowrap';
 
-      itemInfo.append(priceInput, status);
+      itemInfo.append(priceDisplay, status);
     } else if (activity.is_completed && activity.completed_by) {
       const personName =
         sharedMemberNames[activity.completed_by] || 'Nome não informado';
@@ -3689,53 +4120,63 @@ status.style.whiteSpace = 'nowrap';
       completedBy.style.display = 'none';
     }
 
-    checkbox.addEventListener('change', async () => {
-      checkbox.disabled = true;
+    
+if (isFurnitureMission) {
+  // Na missão de móveis, a compra será confirmada
+  // pela nova tela de registro de compra.
+  checkbox.style.display = 'none';
+  checkbox.checked = Boolean(purchasesByActivity[activity.id]);
+} else {
+  checkbox.addEventListener('change', async () => {
+    checkbox.disabled = true;
 
-      const { data: userData, error: userError } =
-        await supabaseClient.auth.getUser();
+    const { data: userData, error: userError } =
+      await supabaseClient.auth.getUser();
 
-      if (userError || !userData.user) {
-        alert('Não foi possível identificar seu usuário.');
-        await loadSharedTasks();
-        return;
-      }
-
-      const completed = checkbox.checked;
-
-      const { error } = await supabaseClient
-        .from('shared_mission_activities')
-        .update({
-          is_completed: completed,
-          completed_by: completed ? userData.user.id : null,
-          completed_at: completed ? new Date().toISOString() : null
-        })
-        .eq('id', activity.id);
-
-      if (error) {
-        console.error('Erro ao atualizar atividade:', error);
-        alert('Não foi possível atualizar a atividade.');
-        checkbox.checked = activity.is_completed;
-        checkbox.disabled = false;
-        return;
-      }
-
-      await openSharedMissionWithFreshData(task.id);
+    if (userError || !userData.user) {
+      alert('Não foi possível identificar seu usuário.');
       await loadSharedTasks();
-    });
+      return;
+    }
+
+    const completed = checkbox.checked;
+
+    const { error } = await supabaseClient
+      .from('shared_mission_activities')
+      .update({
+        is_completed: completed,
+        completed_by: completed ? userData.user.id : null,
+        completed_at: completed ? new Date().toISOString() : null
+      })
+      .eq('id', activity.id);
+
+    if (error) {
+      console.error('Erro ao atualizar atividade:', error);
+      alert('Não foi possível atualizar a atividade.');
+      checkbox.checked = activity.is_completed;
+      checkbox.disabled = false;
+      return;
+    }
+
+    await openSharedMissionWithFreshData(task.id);
+    await loadSharedTasks();
+  });
+}
+
 
     
-    const actionButtons = document.createElement('div');
-    actionButtons.style.display = 'flex';
-    actionButtons.style.flexDirection = 'row';
-    actionButtons.style.alignItems = 'center';
-    actionButtons.style.gap = '6px';
-    actionButtons.style.flexShrink = '0';
+    
+const actionButtons = document.createElement('div');
+actionButtons.style.display = 'flex';
+actionButtons.style.flexDirection = 'row';
+actionButtons.style.alignItems = 'center';
+actionButtons.style.gap = '6px';
+actionButtons.style.flexShrink = '0';
 
-    // Botão para editar o nome
-    const editButton = document.createElement('button');
-    editButton.type = 'button';
-    editButton.innerHTML = `
+// Botão para editar o nome
+const editButton = document.createElement('button');
+editButton.type = 'button';
+editButton.innerHTML = `
   <svg viewBox="0 0 24 24" width="18" height="18"
        fill="none" stroke="currentColor" stroke-width="1.8"
        stroke-linecap="round" stroke-linejoin="round">
@@ -3743,105 +4184,230 @@ status.style.whiteSpace = 'nowrap';
     <path d="M4 20l4.5-1 11-11a2.1 2.1 0 0 0-3-3l-11 11L4 20z"/>
   </svg>
 `;
-    editButton.title = 'Editar nome';
-    editButton.setAttribute('aria-label', 'Editar nome');
-    editButton.className = 'secondary';
-    editButton.style.width = '38px';
-    editButton.style.height = '38px';
-    editButton.style.padding = '0';
-    editButton.style.fontSize = '18px';
+editButton.title = 'Editar nome';
+editButton.setAttribute('aria-label', 'Editar nome');
+editButton.className = 'secondary';
+editButton.style.width = '38px';
+editButton.style.height = '38px';
+editButton.style.padding = '0';
+editButton.style.fontSize = '18px';
 
-    editButton.addEventListener('click', async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
+editButton.addEventListener('click', async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
 
-      const newName = prompt(
-        'Digite o novo nome:',
-        activity.activity_name
-      );
+  const newName = prompt(
+    'Digite o novo nome:',
+    activity.activity_name
+  );
 
-      if (newName === null) return;
+  if (newName === null) return;
 
-      const updatedName = newName.trim();
+  const updatedName = newName.trim();
 
-      if (!updatedName) {
-        alert('O nome não pode ficar vazio.');
-        return;
-      }
+  if (!updatedName) {
+    alert('O nome não pode ficar vazio.');
+    return;
+  }
 
-      const alreadyExists = activities.some(item =>
-        item.id !== activity.id &&
-        item.activity_name.trim().toLowerCase() ===
-        updatedName.toLowerCase()
-      );
+  const alreadyExists = activities.some(item =>
+    item.id !== activity.id &&
+    item.activity_name.trim().toLowerCase() ===
+    updatedName.toLowerCase()
+  );
 
-      if (alreadyExists) {
-        alert('Já existe uma atividade com esse nome.');
-        return;
-      }
+  if (alreadyExists) {
+    alert('Já existe uma atividade com esse nome.');
+    return;
+  }
 
-      editButton.disabled = true;
+  editButton.disabled = true;
 
-      const { error } = await supabaseClient
-        .from('shared_mission_activities')
-        .update({ activity_name: updatedName })
-        .eq('id', activity.id);
+  const { error } = await supabaseClient
+    .from('shared_mission_activities')
+    .update({ activity_name: updatedName })
+    .eq('id', activity.id);
 
-      if (error) {
-        console.error('Erro ao editar atividade:', error);
-        alert('Não foi possível alterar o nome.');
-        editButton.disabled = false;
-        return;
-      }
+  if (error) {
+    console.error('Erro ao editar atividade:', error);
+    alert('Não foi possível alterar o nome.');
+    editButton.disabled = false;
+    return;
+  }
 
-      await openSharedMissionWithFreshData(task.id);
-      await loadSharedTasks();
-    });
+  await openSharedMissionWithFreshData(task.id);
+  await loadSharedTasks();
+});
 
-    // Botão para excluir
-    const deleteButton = document.createElement('button');
-    deleteButton.type = 'button';
+// Botão para excluir
+const deleteButton = document.createElement('button');
+deleteButton.type = 'button';
+deleteButton.textContent = '×';
+deleteButton.title = 'Excluir atividade';
+deleteButton.setAttribute('aria-label', 'Excluir atividade');
+deleteButton.className = 'secondary';
+deleteButton.style.width = '38px';
+deleteButton.style.height = '38px';
+deleteButton.style.padding = '0';
+deleteButton.style.fontSize = '20px';
+
+deleteButton.addEventListener('click', async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const confirmed = confirm(
+    `Deseja excluir a atividade "${activity.activity_name}"? Essa ação não poderá ser desfeita.`
+  );
+
+  if (!confirmed) return;
+
+  deleteButton.disabled = true;
+  deleteButton.textContent = '...';
+
+  const { error } = await supabaseClient
+    .from('shared_mission_activities')
+    .delete()
+    .eq('id', activity.id);
+
+  if (error) {
+    console.error('Erro ao excluir atividade:', error);
+    alert('Não foi possível excluir a atividade.');
+    deleteButton.disabled = false;
     deleteButton.textContent = '×';
-    deleteButton.title = 'Excluir atividade';
-    deleteButton.setAttribute('aria-label', 'Excluir atividade');
-    deleteButton.className = 'secondary';
-    deleteButton.style.width = '38px';
-    deleteButton.style.height = '38px';
-    deleteButton.style.padding = '0';
-    deleteButton.style.fontSize = '20px';
-    deleteButton.addEventListener('click', async (event) => {
+    return;
+  }
+
+  await openSharedMissionWithFreshData(task.id);
+  await loadSharedTasks();
+});
+
+// Monta o menu de ações dos móveis
+if (isFurnitureMission) {
+  actionButtons.style.position = 'relative';
+
+  const menuButton = document.createElement('button');
+  menuButton.type = 'button';
+  menuButton.textContent = '⋮';
+  menuButton.title = 'Opções do móvel';
+  menuButton.setAttribute('aria-label', 'Opções do móvel');
+  menuButton.className = 'secondary';
+  menuButton.style.width = '38px';
+  menuButton.style.height = '38px';
+  menuButton.style.padding = '0';
+  menuButton.style.fontSize = '23px';
+
+  const optionsMenu = document.createElement('div');
+  optionsMenu.style.display = 'none';
+  optionsMenu.style.position = 'absolute';
+  optionsMenu.style.right = '0';
+  optionsMenu.style.top = '42px';
+  optionsMenu.style.minWidth = '205px';
+  optionsMenu.style.padding = '6px';
+  optionsMenu.style.background = 'var(--card)';
+  optionsMenu.style.border = '1px solid var(--border)';
+  optionsMenu.style.borderRadius = '12px';
+  optionsMenu.style.boxShadow = '0 6px 20px var(--shadow)';
+  optionsMenu.style.zIndex = '100';
+  optionsMenu.style.flexDirection = 'column';
+  optionsMenu.style.gap = '3px';
+
+  function createFurnitureOption(label, onClick) {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.textContent = label;
+    option.className = 'secondary';
+    option.style.width = '100%';
+    option.style.textAlign = 'left';
+    option.style.justifyContent = 'flex-start';
+    option.style.padding = '10px 12px';
+    option.style.fontSize = '13px';
+
+    option.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
+      optionsMenu.style.display = 'none';
+      await onClick();
+    });
 
-      const confirmed = confirm(
-        `Deseja excluir a atividade "${activity.activity_name}"? Essa ação não poderá ser desfeita.`
+    return option;
+  }
+
+  // Opção: alterar nome
+  optionsMenu.appendChild(
+    createFurnitureOption('Alterar nome do produto/móvel', async () => {
+      editButton.click();
+    })
+  );
+
+  // Opção: editar valor de referência
+  optionsMenu.appendChild(
+    createFurnitureOption('Editar valor', async () => {
+      const currentValue = activity.item_price == null
+        ? ''
+        : String(activity.item_price).replace('.', ',');
+
+      const newValue = prompt(
+        'Informe o valor de referência do móvel. Deixe vazio para não informar um valor:',
+        currentValue
       );
 
-      if (!confirmed) return;
+      if (newValue === null) return;
 
-      deleteButton.disabled = true;
-      deleteButton.textContent = '...';
+      let updatedPrice = null;
+
+      if (newValue.trim() !== '') {
+        const normalizedValue = newValue
+          .trim()
+          .replace(/\s/g, '')
+          .replace(/\./g, '')
+          .replace(',', '.');
+
+        updatedPrice = Number(normalizedValue);
+
+        if (!Number.isFinite(updatedPrice) || updatedPrice < 0) {
+          alert('Informe um valor válido, igual ou maior que zero.');
+          return;
+        }
+      }
 
       const { error } = await supabaseClient
         .from('shared_mission_activities')
-        .delete()
+        .update({ item_price: updatedPrice })
         .eq('id', activity.id);
 
       if (error) {
-        console.error('Erro ao excluir atividade:', error);
-        alert('Não foi possível excluir a atividade.');
-        deleteButton.disabled = false;
-        deleteButton.textContent = '×';
+        console.error('Erro ao editar valor:', error);
+        alert('Não foi possível atualizar o valor.');
         return;
       }
 
       await openSharedMissionWithFreshData(task.id);
       await loadSharedTasks();
-    });
+    })
+  );
 
-    actionButtons.append(editButton, deleteButton);
+  // Opção: excluir
+  optionsMenu.appendChild(
+    createFurnitureOption('Excluir', async () => {
+      deleteButton.click();
+    })
+  );
 
-    if (isFurnitureMission) {
+  menuButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    optionsMenu.style.display =
+      optionsMenu.style.display === 'none' ? 'flex' : 'none';
+  });
+
+  actionButtons.append(menuButton, optionsMenu);
+} else {
+  // Mantém os botões originais das outras missões.
+  actionButtons.append(editButton, deleteButton);
+}
+
+if (isFurnitureMission) {
   name.style.flex = '1 1 120px';
   name.style.minWidth = '100px';
 
@@ -3866,11 +4432,11 @@ status.style.whiteSpace = 'nowrap';
   const roomLists = roomSections[furnitureRoom];
 
   if (roomLists) {
-    if (activity.is_completed) {
-      roomLists.purchasedList.append(row);
-    } else {
-      roomLists.pendingList.append(row);
-    }
+    if (purchasesByActivity[activity.id]) {
+  roomLists.purchasedList.append(row);
+} else {
+  roomLists.pendingList.append(row);
+}
   } else {
     activityList.append(row);
   }
@@ -4350,6 +4916,7 @@ function closeSharedMissionModal() {
   $('sharedMissionModal').style.display = 'none';
 }
 
+
 async function openSharedMissionWithFreshData(taskId) {
   const { data: activities, error } = await supabaseClient
     .from('shared_mission_activities')
@@ -4374,8 +4941,50 @@ async function openSharedMissionWithFreshData(taskId) {
     return;
   }
 
-  openSharedMissionModal(task, activities || []);
+  const activityIds = (activities || []).map(activity => activity.id);
+
+  let quotes = [];
+  let purchases = [];
+
+  if (activityIds.length > 0) {
+    const { data: quoteData, error: quoteError } =
+      await supabaseClient
+        .from('shared_furniture_quotes')
+        .select('id, activity_id, store_name, store_type, product_price, delivery_method, shipping_cost, created_by, created_at, updated_at')
+        .in('activity_id', activityIds)
+        .order('created_at', { ascending: true });
+
+    if (quoteError) {
+      console.error('Erro ao carregar cotações:', quoteError);
+      alert('Não foi possível carregar as cotações dos móveis.');
+      return;
+    }
+
+    quotes = quoteData || [];
+
+    const { data: purchaseData, error: purchaseError } =
+      await supabaseClient
+        .from('shared_furniture_purchases')
+        .select('id, activity_id, quote_id, store_name, product_price, shipping_cost, delivery_method, purchased_by, purchased_at')
+        .in('activity_id', activityIds);
+
+    if (purchaseError) {
+      console.error('Erro ao carregar compras:', purchaseError);
+      alert('Não foi possível carregar os registros de compra.');
+      return;
+    }
+
+    purchases = purchaseData || [];
+  }
+
+  openSharedMissionModal(
+    task,
+    activities || [],
+    quotes,
+    purchases
+  );
 }
+
   let sharedMemberNames = {};
 async function loadSharedTasks() {
   const card = $('sharedTasksCard');
@@ -4606,15 +5215,15 @@ progressFill.style.transition = 'width 0.6s ease';
 
 
   item.addEventListener('click', () => {
-    openSharedMissionModal(task, activities);
-  });
+  openSharedMissionWithFreshData(task.id);
+});
 
-  item.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      openSharedMissionModal(task, activities);
-    }
-  });
+item.addEventListener('keydown', event => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    openSharedMissionWithFreshData(task.id);
+  }
+});
 
   item.tabIndex = 0;
 item.setAttribute('role', 'button');
