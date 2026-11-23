@@ -3069,6 +3069,11 @@ if (isFurnitureMission) {
   menuWrapper.append(dragHandle, roomMenu);
   dragHandle = menuWrapper;
 }
+  document.addEventListener('click', (event) => {
+  if (!menuWrapper.contains(event.target)) {
+    roomMenu.style.display = 'none';
+  }
+});
 
 
     const checkbox = document.createElement('input');
