@@ -2769,19 +2769,128 @@ if (isFurnitureMission) {
     activityList.append(empty);
   }
 
+  
   const orderedActivities = isFurnitureMission
-  ? [...activities].sort(
-      (a, b) => Number(b.is_completed) - Number(a.is_completed)
-    )
-  : activities;
+    ? [...activities].sort((a, b) => {
+        const roomA = a.room || 'Sem cômodo';
+        const roomB = b.room || 'Sem cômodo';
 
-orderedActivities.forEach(activity => {
+        const roomComparison = roomA.localeCompare(roomB, 'pt-BR');
+
+        if (roomComparison !== 0) return roomComparison;
+
+        return Number(b.is_completed) - Number(a.is_completed);
+      })
+    : activities;
+
+  let currentRoom = '';
+
+  orderedActivities.forEach(activity => {
+
+    if (isFurnitureMission) {
+      const room = activity.room || 'Sem cômodo';
+
+      if (room !== currentRoom) {
+        currentRoom = room;
+
+        const roomHeader = document.createElement('div');
+        roomHeader.style.display = 'flex';
+        roomHeader.style.alignItems = 'center';
+        roomHeader.style.gap = '8px';
+        roomHeader.style.marginTop = '18px';
+        roomHeader.style.marginBottom = '4px';
+        roomHeader.style.padding = '10px 0';
+        roomHeader.style.borderBottom = '1px solid var(--border)';
+        roomHeader.style.fontWeight = '700';
+        roomHeader.style.fontSize = '15px';
+
+        const roomIcon = document.createElement('span');
+        const roomIcons = {
+          'Sala de estar': '🛋️',
+          'Cozinha': '🍳',
+          'Quarto': '🛏️',
+          'Sala de jantar': '🍽️',
+          'Lavanderia': '🧺',
+          'Banheiro': '🚿'
+        };
+
+        roomIcon.textContent = roomIcons[room] || '🏠';
+
+        const roomName = document.createElement('span');
+        roomName.textContent = room;
+
+        
+        roomHeader.append(roomIcon, roomName);
+
+        roomHeader.addEventListener('dragover', event => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+          roomHeader.style.background = 'var(--card)';
+        });
+
+        roomHeader.addEventListener('dragleave', () => {
+          roomHeader.style.background = '';
+        });
+
+        roomHeader.addEventListener('drop', async event => {
+          event.preventDefault();
+          roomHeader.style.background = '';
+
+          const activityId = event.dataTransfer.getData('text/plain');
+
+          if (!activityId) return;
+
+          const { error } = await supabaseClient
+            .from('shared_mission_activities')
+            .update({ room: room })
+            .eq('id', activityId)
+            .eq('task_id', task.id);
+
+          if (error) {
+            console.error('Erro ao mover móvel:', error);
+            alert('Não foi possível mover o móvel.');
+            return;
+          }
+
+          await openSharedMissionWithFreshData(task.id);
+          await loadSharedTasks();
+        });
+
+        activityList.append(roomHeader);
+
+      }
+    }
+
     const row = document.createElement('div');
     row.style.display = 'flex';
     row.style.alignItems = 'center';
     row.style.gap = '10px';
     row.style.padding = '12px 0';
     row.style.borderBottom = '1px solid var(--border)';
+    
+    let dragHandle = null;
+
+    if (isFurnitureMission) {
+      dragHandle = document.createElement('span');
+      dragHandle.textContent = '☰';
+      dragHandle.title = 'Segure para mover para outro cômodo';
+      dragHandle.style.cursor = 'grab';
+      dragHandle.style.fontSize = '19px';
+      dragHandle.style.color = 'var(--muted)';
+      dragHandle.style.flexShrink = '0';
+      dragHandle.draggable = true;
+
+      dragHandle.addEventListener('dragstart', event => {
+        event.dataTransfer.setData('text/plain', activity.id);
+        event.dataTransfer.effectAllowed = 'move';
+        row.style.opacity = '0.45';
+      });
+
+      dragHandle.addEventListener('dragend', () => {
+        row.style.opacity = '1';
+      });
+    }
+
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -3041,7 +3150,7 @@ orderedActivities.forEach(activity => {
     actionButtons.append(editButton, deleteButton);
 
     if (isFurnitureMission) {
-      row.append(checkbox, name, itemInfo, actionButtons);
+      row.append(dragHandle, checkbox, name, itemInfo, actionButtons);
     } else {
       row.append(checkbox, name, completedBy, actionButtons);
     }
@@ -3421,7 +3530,7 @@ function closeSharedMissionModal() {
 async function openSharedMissionWithFreshData(taskId) {
   const { data: activities, error } = await supabaseClient
     .from('shared_mission_activities')
-    .select('id, task_id, activity_name, is_completed, completed_by, points, item_price')
+    .select('id, task_id, activity_name, is_completed, completed_by, points, item_price, room')
     .eq('task_id', taskId)
     .order('created_at', { ascending: true });
 
@@ -3567,7 +3676,7 @@ if (todayTasks.length) {
   const { data: missionActivities, error: activitiesError } =
     await supabaseClient
       .from('shared_mission_activities')
-      .select('id, task_id, activity_name, is_completed, completed_by, points, item_price')
+      .select('id, task_id, activity_name, is_completed, completed_by, points, item_price, room')
       .in('task_id', taskIds)
       .order('created_at', { ascending: true });
 
