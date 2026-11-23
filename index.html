@@ -2787,6 +2787,14 @@ if (isFurnitureMission) {
     roomList.push(room);
   }
 });
+
+// Mantém "Sem cômodo" sempre como último da lista.
+const semComodoIndex = roomList.indexOf('Sem cômodo');
+
+if (semComodoIndex !== -1) {
+  roomList.splice(semComodoIndex, 1);
+  roomList.push('Sem cômodo');
+}
   const orderedActivities = isFurnitureMission
     ? [...activities].sort((a, b) => {
         const roomA = a.room || 'Sem cômodo';
@@ -2801,6 +2809,7 @@ if (isFurnitureMission) {
     : activities;
 
   let roomSections = {};
+  let roomTotals = {};
 
 if (isFurnitureMission) {
   roomList.forEach(room => {
@@ -2829,15 +2838,117 @@ if (isFurnitureMission) {
     roomIcon.textContent = roomIcons[room] || '🏠';
 
     const roomName = document.createElement('span');
-    roomName.textContent = room;
+roomName.textContent = room;
+roomName.style.flex = '1';
 
-    roomHeader.append(roomIcon, roomName);
+const renameRoomButton = document.createElement('button');
+renameRoomButton.type = 'button';
+renameRoomButton.textContent = '✎';
+renameRoomButton.title = 'Renomear cômodo';
+renameRoomButton.setAttribute('aria-label', 'Renomear cômodo');
+renameRoomButton.className = 'secondary';
+renameRoomButton.style.padding = '5px 10px';
+renameRoomButton.style.fontSize = '16px';
+renameRoomButton.style.flexShrink = '0';
+
+if (room === 'Sem cômodo') {
+  renameRoomButton.style.display = 'none';
+}
+
+renameRoomButton.addEventListener('click', async () => {
+  const newName = prompt('Digite o novo nome do cômodo:', room);
+
+  if (newName === null) return;
+
+  const updatedName = newName.trim();
+
+  if (!updatedName) {
+    alert('Digite um nome válido.');
+    return;
+  }
+
+  if (roomList.some(existingRoom =>
+    existingRoom !== room &&
+    existingRoom.toLowerCase() === updatedName.toLowerCase()
+  )) {
+    alert('Já existe um cômodo com esse nome.');
+    return;
+  }
+
+  renameRoomButton.disabled = true;
+
+  try {
+    const { error: activityError } = await supabaseClient
+      .from('shared_mission_activities')
+      .update({ room: updatedName })
+      .eq('task_id', task.id)
+      .eq('room', room);
+
+    if (activityError) throw activityError;
+
+    const updatedRooms = roomList.map(existingRoom =>
+      existingRoom === room ? updatedName : existingRoom
+    );
+
+    // Mantém "Sem cômodo" sempre por último.
+    const semComodoIndex = updatedRooms.indexOf('Sem cômodo');
+
+    if (semComodoIndex !== -1) {
+      updatedRooms.splice(semComodoIndex, 1);
+      updatedRooms.push('Sem cômodo');
+    }
+
+    const { error: roomError } = await supabaseClient
+      .from('shared_tasks')
+      .update({ rooms: updatedRooms })
+      .eq('id', task.id);
+
+    if (roomError) throw roomError;
+
+    await openSharedMissionWithFreshData(task.id);
+    await loadSharedTasks();
+
+  } catch (error) {
+    console.error('Erro ao renomear cômodo:', error);
+    alert('Não foi possível renomear o cômodo. Verifique sua conexão e tente novamente.');
+    renameRoomButton.disabled = false;
+  }
+});
+
+    roomHeader.append(roomIcon, roomName, renameRoomButton);
 activityList.append(roomHeader);
 
 const roomSection = document.createElement('div');
 roomSection.style.paddingLeft = '4px';
 
 roomSections[room] = roomSection;
+
+const roomSummary = document.createElement('div');
+roomSummary.style.display = 'flex';
+roomSummary.style.justifyContent = 'space-between';
+roomSummary.style.flexWrap = 'wrap';
+roomSummary.style.gap = '8px';
+roomSummary.style.padding = '10px 12px';
+roomSummary.style.marginBottom = '6px';
+roomSummary.style.background = 'var(--soft)';
+roomSummary.style.borderRadius = '10px';
+roomSummary.style.fontSize = '12px';
+
+const roomPredicted = document.createElement('span');
+const roomSpent = document.createElement('span');
+
+roomPredicted.textContent = 'Previsto: R$ 0,00';
+roomSpent.textContent = 'Gasto: R$ 0,00';
+
+roomSummary.append(roomPredicted, roomSpent);
+roomSection.append(roomSummary);
+
+roomTotals[room] = {
+  predicted: 0,
+  spent: 0,
+  predictedElement: roomPredicted,
+  spentElement: roomSpent
+};
 
 activityList.append(roomSection);
   });
@@ -2879,7 +2990,8 @@ roomMenu.style.maxWidth = 'min(210px, 75vw)';
   roomMenu.style.maxHeight = '260px';
   roomMenu.style.overflowY = 'auto';
   roomMenu.style.padding = '10px';
-  roomMenu.style.background = 'white';
+  roomMenu.style.background = 'var(--card)';
+  roomMenu.style.color = 'var(--text)';
   roomMenu.style.border = '1px solid var(--border)';
   roomMenu.style.borderRadius = '12px';
   roomMenu.style.boxShadow = '0 4px 14px rgba(0,0,0,0.15)';
@@ -2982,12 +3094,22 @@ roomMenu.style.maxWidth = 'min(210px, 75vw)';
           : Number(activity.item_price);
 
       if (itemPrice !== null && Number.isFinite(itemPrice)) {
-        totalPredicted += itemPrice;
+  totalPredicted += itemPrice;
 
-        if (activity.is_completed) {
-          totalSpent += itemPrice;
-        }
-      }
+  const furnitureRoom = activity.room || 'Sem cômodo';
+
+  if (roomTotals[furnitureRoom]) {
+    roomTotals[furnitureRoom].predicted += itemPrice;
+  }
+
+  if (activity.is_completed) {
+    totalSpent += itemPrice;
+
+    if (roomTotals[furnitureRoom]) {
+      roomTotals[furnitureRoom].spent += itemPrice;
+    }
+  }
+}
 
       itemInfo = document.createElement('div');
       itemInfo.style.display = 'flex';
@@ -3224,6 +3346,15 @@ roomMenu.style.maxWidth = 'min(210px, 75vw)';
     }
   });
 
+  if (isFurnitureMission) {
+  Object.values(roomTotals).forEach(room => {
+    room.predictedElement.textContent =
+      'Previsto: ' + moneyFormat.format(room.predicted);
+
+    room.spentElement.textContent =
+      'Gasto: ' + moneyFormat.format(room.spent);
+  });
+}
   if (isFurnitureMission) {
     const totals = document.createElement('div');
     totals.style.marginTop = '18px';
