@@ -2812,6 +2812,11 @@ if (semComodoIndex !== -1) {
   let roomTotals = {};
 
 if (isFurnitureMission) {
+  activityList.style.display = 'grid';
+activityList.style.gridTemplateColumns =
+  'repeat(2, minmax(0, 1fr))';
+activityList.style.gap = '12px';
+activityList.style.alignItems = 'start';
   roomList.forEach(room => {
     const roomHeader = document.createElement('div');
     const roomCard = document.createElement('div');
@@ -2842,16 +2847,43 @@ if (isFurnitureMission) {
     roomHeader.dataset.room = room;
 
     const roomIcons = {
-      'Sala de estar': '🛋️',
-      'Cozinha': '🍳',
-      'Quarto': '🛏️',
-      'Sala de jantar': '🍽️',
-      'Lavanderia': '🧺',
-      'Banheiro': '🚿'
-    };
+  'Sala de estar': 'sofa',
+  'Cozinha': 'utensils',
+  'Quarto': 'bed-double',
+  'Sala de jantar': 'utensils',
+  'Lavanderia': 'washing-machine',
+  'Banheiro': 'bath',
+  'Sem cômodo': 'house'
+};
 
-    const roomIcon = document.createElement('span');
-    roomIcon.textContent = roomIcons[room] || '🏠';
+const iconPaths = {
+  sofa: '<path d="M3 11V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"/><path d="M2 12a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6H2z"/><path d="M4 18v2M20 18v2"/>',
+  utensils: '<path d="M3 2v7a3 3 0 0 0 6 0V2M6 2v20M18 2v20M18 2c-3 3-3 7 0 9"/>',
+  'bed-double': '<path d="M2 4v16M22 4v16M2 12h20M2 17h20"/><path d="M6 12V8h5v4M13 12V8h5v4"/>',
+  'washing-machine': '<rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="13" r="5"/><path d="M8 5h.01M12 5h.01"/>',
+  bath: '<path d="M3 12h18v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5z"/><path d="M5 12V5a3 3 0 0 1 6 0v1M7 20v2M17 20v2"/>',
+  house: '<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>'
+};
+
+const roomIcon = document.createElement('span');
+roomIcon.innerHTML = `
+  <svg viewBox="0 0 24 24"
+       width="27" height="27"
+       fill="none"
+       stroke="currentColor"
+       stroke-width="1.8"
+       stroke-linecap="round"
+       stroke-linejoin="round"
+       aria-hidden="true">
+    ${iconPaths[roomIcons[room]] || iconPaths.house}
+  </svg>
+`;
+roomIcon.style.display = 'flex';
+roomIcon.style.alignItems = 'center';
+roomIcon.style.justifyContent = 'center';
+roomIcon.style.color =
+  document.body.dataset.theme === 'black' ? '#F1F1F3' : '#C02768';
+roomIcon.style.flexShrink = '0';
 
     const roomName = document.createElement('span');
 roomName.textContent = room;
@@ -3033,28 +3065,45 @@ roomTotals[room] = {
   spentElement: roomSpent
 };
 
+roomSection.style.display = 'none';
+
 const toggleRoomButton = document.createElement('button');
 toggleRoomButton.type = 'button';
 toggleRoomButton.textContent = '⌄';
-toggleRoomButton.title = 'Recolher cômodo';
+toggleRoomButton.title = 'Expandir cômodo';
 toggleRoomButton.className = 'secondary';
-toggleRoomButton.style.padding = '4px 10px';
+toggleRoomButton.style.padding = '4px 9px';
 toggleRoomButton.style.fontSize = '20px';
 toggleRoomButton.style.marginLeft = 'auto';
 toggleRoomButton.style.flexShrink = '0';
 
 roomHeader.append(toggleRoomButton);
 
-toggleRoomButton.addEventListener('click', (event) => {
-  event.stopPropagation();
-
+const toggleRoom = () => {
   const isExpanded = roomSection.style.display !== 'none';
 
   roomSection.style.display = isExpanded ? 'none' : 'block';
-  toggleRoomButton.textContent = isExpanded ? '›' : '⌄';
+
+  toggleRoomButton.textContent = isExpanded ? '⌄' : '⌃';
   toggleRoomButton.title = isExpanded
     ? 'Expandir cômodo'
     : 'Recolher cômodo';
+};
+
+roomHeader.style.cursor = 'pointer';
+
+roomHeader.addEventListener('click', (event) => {
+  if (
+    event.target.closest('button')
+  ) return;
+
+  toggleRoom();
+});
+
+toggleRoomButton.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  toggleRoom();
 });
 
 roomCard.append(roomHeader, roomSection);
@@ -3532,9 +3581,11 @@ status.style.whiteSpace = 'nowrap';
 }
 if (isFurnitureMission) {
     const totals = document.createElement('div');
-    totals.style.marginTop = '22px';
-    totals.style.padding = '18px';
-    totals.style.borderRadius = '16px';
+totals.style.gridColumn = '1 / -1';
+
+totals.style.marginTop = '22px';
+totals.style.padding = '18px';
+totals.style.borderRadius = '16px';
     totals.style.background = 'var(--card)';
     totals.style.border = '1px solid var(--border)';
     totals.style.boxShadow = '0 3px 12px var(--shadow)';
