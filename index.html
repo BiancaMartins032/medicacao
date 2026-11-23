@@ -2718,9 +2718,19 @@ function openSharedMissionModal(task, activities) {
     valueInput.placeholder = '';
   }
 
+  const settingsCard = $('sharedMissionDueDate').closest('.card');
+const addActivityCard = $('newSharedActivityName').closest('.card');
+
+if (isFurnitureMission) {
+  if (settingsCard) settingsCard.style.display = 'none';
+  if (addActivityCard) addActivityCard.style.display = 'none';
+} else {
+  if (settingsCard) settingsCard.style.display = '';
+  if (addActivityCard) addActivityCard.style.display = '';
   $('sharedMissionDueDate').value = task.due_date || '';
   $('sharedMissionReward').value = task.reward || '';
   $('sharedMissionSettingsMessage').textContent = '';
+}
 
   const activityList = $('sharedMissionActivities');
   activityList.replaceChildren();
@@ -2920,7 +2930,11 @@ function openSharedMissionModal(task, activities) {
 
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';
-    deleteButton.textContent = 'Excluir';
+    deleteButton.textContent = '×';
+    deleteButton.title = 'Excluir atividade';
+    deleteButton.setAttribute('aria-label', 'Excluir atividade');
+    deleteButton.style.fontSize = '20px';
+    deleteButton.style.padding = '2px 9px';
     deleteButton.className = 'secondary';
     deleteButton.style.padding = '6px 10px';
     deleteButton.style.fontSize = '12px';
@@ -2948,7 +2962,7 @@ function openSharedMissionModal(task, activities) {
         console.error('Erro ao excluir atividade:', error);
         alert('Não foi possível excluir a atividade.');
         deleteButton.disabled = false;
-        deleteButton.textContent = 'Excluir';
+        deleteButton.textContent = '×';
         return;
       }
 
@@ -2997,6 +3011,72 @@ function openSharedMissionModal(task, activities) {
 
     totals.append(predicted, spent);
     activityList.append(totals);
+  }
+
+  
+  if (isFurnitureMission) {
+    const addFurnitureButton = document.createElement('button');
+    addFurnitureButton.type = 'button';
+    addFurnitureButton.textContent = '+ Adicionar mais móveis';
+    addFurnitureButton.className = 'secondary';
+    addFurnitureButton.style.width = '100%';
+    addFurnitureButton.style.marginTop = '14px';
+
+    addFurnitureButton.addEventListener('click', async () => {
+      const name = prompt('Qual móvel deseja adicionar?');
+
+      if (name === null) return;
+
+      const furnitureName = name.trim();
+
+      if (!furnitureName) {
+        alert('Digite o nome do móvel.');
+        return;
+      }
+
+      const alreadyExists = activities.some(activity =>
+        activity.activity_name.trim().toLowerCase() ===
+        furnitureName.toLowerCase()
+      );
+
+      if (alreadyExists) {
+        alert('Esse móvel já está no checklist.');
+        return;
+      }
+
+      addFurnitureButton.disabled = true;
+
+      try {
+        const { data: userData, error: userError } =
+          await supabaseClient.auth.getUser();
+
+        if (userError || !userData.user) {
+          throw new Error('Não foi possível identificar seu usuário.');
+        }
+
+        const { error } = await supabaseClient
+          .from('shared_mission_activities')
+          .insert({
+            task_id: task.id,
+            activity_name: furnitureName,
+            points: 0,
+            item_price: null,
+            created_by: userData.user.id
+          });
+
+        if (error) throw error;
+
+        await openSharedMissionWithFreshData(task.id);
+        await loadSharedTasks();
+
+      } catch (error) {
+        console.error('Erro ao adicionar móvel:', error);
+        alert('Não foi possível adicionar o móvel: ' + error.message);
+        addFurnitureButton.disabled = false;
+      }
+    });
+
+    activityList.append(addFurnitureButton);
   }
 
   modal.style.display = 'flex';
@@ -3492,6 +3572,35 @@ progressFill.style.transition = 'width 0.6s ease';
 
   progressTrack.append(progressFill);
   item.append(top, progressTrack);
+  
+  const missionInfo = document.createElement('div');
+  missionInfo.style.display = 'flex';
+  missionInfo.style.flexDirection = 'column';
+  missionInfo.style.gap = '4px';
+  missionInfo.style.marginTop = '9px';
+  missionInfo.style.fontSize = '12px';
+  missionInfo.style.color = 'var(--muted)';
+
+  if (task.due_date) {
+    const dateInfo = document.createElement('span');
+
+    const [year, month, day] = task.due_date.split('-');
+    const formattedDate = `${day}/${month}/${year}`;
+
+    dateInfo.textContent = '📅 Prazo: ' + formattedDate;
+    missionInfo.append(dateInfo);
+  }
+
+  if (task.reward) {
+    const rewardInfo = document.createElement('span');
+    rewardInfo.textContent = '🏆 Prêmio: ' + task.reward;
+    missionInfo.append(rewardInfo);
+  }
+
+  if (missionInfo.childElementCount > 0) {
+    item.append(missionInfo);
+  }
+
 
   item.addEventListener('click', () => {
     openSharedMissionModal(task, activities);
