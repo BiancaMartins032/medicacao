@@ -3533,7 +3533,15 @@ addRoomButton.addEventListener('click', async () => {
   addRoomButton.disabled = true;
 
   try {
-    const updatedRooms = [...roomList, roomName];
+    const updatedRooms = [...roomList];
+
+const semComodoIndex = updatedRooms.indexOf('Sem cômodo');
+
+if (semComodoIndex !== -1) {
+  updatedRooms.splice(semComodoIndex, 0, roomName);
+} else {
+  updatedRooms.push(roomName);
+}
 
     const { error } = await supabaseClient
       .from('shared_tasks')
