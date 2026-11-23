@@ -3017,6 +3017,21 @@ if (isFurnitureMission) {
   menuTitle.style.marginBottom = '10px';
 
   roomMenu.append(menuTitle);
+  const closeMenuButton = document.createElement('button');
+closeMenuButton.type = 'button';
+closeMenuButton.textContent = '✕ Fechar';
+closeMenuButton.className = 'secondary';
+closeMenuButton.style.display = 'block';
+closeMenuButton.style.width = '100%';
+closeMenuButton.style.marginBottom = '10px';
+
+closeMenuButton.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  roomMenu.style.display = 'none';
+});
+
+roomMenu.append(closeMenuButton);
 
   roomList.forEach(room => {
     const roomButton = document.createElement('button');
