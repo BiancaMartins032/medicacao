@@ -3728,7 +3728,27 @@ itemScreen.append(
   itemList
 );
 
-roomSection.append(categoryMenu, itemScreen);
+
+// O menu de categorias continua dentro do cartão do cômodo.
+roomSection.append(categoryMenu);
+
+// A tela de categoria passa a ocupar a tela inteira.
+itemScreen.style.display = 'none';
+itemScreen.style.position = 'fixed';
+itemScreen.style.inset = '0';
+itemScreen.style.width = '100%';
+itemScreen.style.height = '100%';
+itemScreen.style.maxHeight = '100vh';
+itemScreen.style.overflowY = 'auto';
+itemScreen.style.boxSizing = 'border-box';
+itemScreen.style.padding = '20px';
+itemScreen.style.background = 'var(--bg)';
+itemScreen.style.color = 'var(--text)';
+itemScreen.style.zIndex = '10001';
+
+// Adiciona a tela fora do cartão e do modal da missão.
+document.body.appendChild(itemScreen);
+
 
 // Abrir uma categoria
 function openFurnitureCategory(category) {
