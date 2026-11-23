@@ -2815,23 +2815,30 @@ if (isFurnitureMission) {
   roomList.forEach(room => {
     const roomHeader = document.createElement('div');
     const roomCard = document.createElement('div');
+
     roomCard.className = 'furniture-room-card';
     roomCard.style.background = 'var(--card)';
     roomCard.style.border = '1px solid var(--border)';
-    roomCard.style.borderRadius = '16px';
-    roomCard.style.padding = '14px';
-    roomCard.style.marginTop = '16px';
-    roomCard.style.boxShadow = '0 3px 12px var(--shadow)';
+    roomCard.style.borderRadius = '18px';
+    roomCard.style.padding = '16px';
+    roomCard.style.marginTop = '20px';
+    roomCard.style.boxShadow = '0 4px 14px var(--shadow)';
+    roomCard.style.overflow = 'visible';
+    roomCard.style.minWidth = '0';
+
     roomHeader.style.display = 'flex';
     roomHeader.style.alignItems = 'center';
+    roomHeader.style.flexWrap = 'wrap';
     roomHeader.style.gap = '8px';
     roomHeader.style.marginTop = '0';
-    roomHeader.style.marginBottom = '10px';
-    roomHeader.style.padding = '4px 2px 12px';
+    roomHeader.style.marginBottom = '12px';
+    roomHeader.style.padding = '4px 2px 14px';
     roomHeader.style.borderBottom = '1px solid var(--border)';
     roomHeader.style.fontWeight = '700';
     roomHeader.style.fontSize = '16px';
     roomHeader.style.minWidth = '0';
+    roomHeader.style.width = '100%';
+
     roomHeader.dataset.room = room;
 
     const roomIcons = {
@@ -2994,7 +3001,6 @@ deleteRoomButton.addEventListener('click', async () => {
   renameRoomButton,
   deleteRoomButton
 );
-roomCard.append(roomHeader);
 const roomSection = document.createElement('div');
 roomSection.style.paddingLeft = '4px';
 
@@ -3027,6 +3033,30 @@ roomTotals[room] = {
   spentElement: roomSpent
 };
 
+const toggleRoomButton = document.createElement('button');
+toggleRoomButton.type = 'button';
+toggleRoomButton.textContent = '⌄';
+toggleRoomButton.title = 'Recolher cômodo';
+toggleRoomButton.className = 'secondary';
+toggleRoomButton.style.padding = '4px 10px';
+toggleRoomButton.style.fontSize = '20px';
+toggleRoomButton.style.marginLeft = 'auto';
+toggleRoomButton.style.flexShrink = '0';
+
+roomHeader.append(toggleRoomButton);
+
+toggleRoomButton.addEventListener('click', (event) => {
+  event.stopPropagation();
+
+  const isExpanded = roomSection.style.display !== 'none';
+
+  roomSection.style.display = isExpanded ? 'none' : 'block';
+  toggleRoomButton.textContent = isExpanded ? '›' : '⌄';
+  toggleRoomButton.title = isExpanded
+    ? 'Expandir cômodo'
+    : 'Recolher cômodo';
+});
+
 roomCard.append(roomHeader, roomSection);
 activityList.append(roomCard);
   });
@@ -3035,13 +3065,14 @@ activityList.append(roomCard);
 orderedActivities.forEach(activity => {
 
     const row = document.createElement('div');
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.flexWrap = 'wrap';
-    row.style.gap = '10px';
-    row.style.padding = '14px 4px';
-    row.style.borderBottom = '1px solid var(--border)';
-    row.style.minWidth = '0';
+row.style.display = 'flex';
+row.style.alignItems = 'center';
+row.style.flexWrap = 'wrap';
+row.style.gap = '12px';
+row.style.padding = '16px 8px';
+row.style.borderBottom = '1px solid var(--border)';
+row.style.minWidth = '0';
+row.style.borderRadius = '10px';
     
     
 let dragHandle = null;
@@ -3170,25 +3201,24 @@ roomMenu.append(menuHeader);
   menuWrapper.append(dragHandle, roomMenu);
   dragHandle = menuWrapper;
 }
-  document.addEventListener('click', (event) => {
-  if (!menuWrapper.contains(event.target)) {
-    roomMenu.style.display = 'none';
-  }
-}, true);
-
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = activity.is_completed;
-    checkbox.style.width = '18px';
-    checkbox.style.height = '18px';
+    checkbox.style.width = '21px';
+    checkbox.style.height = '21px';
     checkbox.style.flexShrink = '0';
+    checkbox.style.accentColor = 'var(--accent)';
+    checkbox.style.cursor = 'pointer';
 
     const name = document.createElement('span');
     name.textContent = activity.activity_name;
     name.style.flex = '1';
-    name.style.minWidth = '0';
+    name.style.minWidth = '100px';
     name.style.overflowWrap = 'anywhere';
+    name.style.fontSize = '14px';
+    name.style.fontWeight = '600';
+    name.style.lineHeight = '1.4';
 
     if (activity.is_completed) {
       name.style.textDecoration = 'line-through';
@@ -3233,8 +3263,9 @@ roomMenu.append(menuHeader);
       itemInfo.style.display = 'flex';
       itemInfo.style.flexDirection = 'column';
       itemInfo.style.alignItems = 'flex-end';
-      itemInfo.style.gap = '4px';
+      itemInfo.style.gap = '6px';
       itemInfo.style.flexShrink = '0';
+      itemInfo.style.minWidth = '110px';
 
       const priceInput = document.createElement('input');
       priceInput.type = 'text';
@@ -3243,10 +3274,13 @@ roomMenu.append(menuHeader);
       priceInput.value = itemPrice === null
         ? ''
         : itemPrice.toFixed(2).replace('.', ',');
-      priceInput.style.width = '105px';
-      priceInput.style.padding = '5px';
+      priceInput.style.width = '110px';
+      priceInput.style.maxWidth = '100%';
+      priceInput.style.boxSizing = 'border-box';
+      priceInput.style.padding = '8px';
       priceInput.style.textAlign = 'right';
-      priceInput.style.fontSize = '13px';
+      priceInput.style.fontSize = '14px';
+      priceInput.style.borderRadius = '8px';
 
       priceInput.addEventListener('change', async () => {
         const raw = priceInput.value.trim();
@@ -3287,11 +3321,17 @@ roomMenu.append(menuHeader);
       });
 
       const status = document.createElement('span');
-      status.textContent = activity.is_completed
-        ? 'Comprado'
-        : 'Falta comprar';
-      status.style.fontSize = '11px';
-      status.style.color = 'var(--muted)';
+status.textContent = activity.is_completed
+  ? 'Comprado'
+  : 'Falta comprar';
+
+status.style.fontSize = '11px';
+status.style.fontWeight = '600';
+status.style.color = 'var(--text)';
+status.style.background = 'var(--soft)';
+status.style.padding = '5px 9px';
+status.style.borderRadius = '20px';
+status.style.whiteSpace = 'nowrap';
 
       itemInfo.append(priceInput, status);
     } else if (activity.is_completed && activity.completed_by) {
@@ -3341,8 +3381,9 @@ roomMenu.append(menuHeader);
     
     const actionButtons = document.createElement('div');
     actionButtons.style.display = 'flex';
-    actionButtons.style.flexDirection = 'column';
-    actionButtons.style.gap = '4px';
+    actionButtons.style.flexDirection = 'row';
+    actionButtons.style.alignItems = 'center';
+    actionButtons.style.gap = '6px';
     actionButtons.style.flexShrink = '0';
 
     // Botão para editar o nome
@@ -3352,8 +3393,10 @@ roomMenu.append(menuHeader);
     editButton.title = 'Editar nome';
     editButton.setAttribute('aria-label', 'Editar nome');
     editButton.className = 'secondary';
-    editButton.style.padding = '3px 9px';
-    editButton.style.fontSize = '17px';
+    editButton.style.width = '38px';
+    editButton.style.height = '38px';
+    editButton.style.padding = '0';
+    editButton.style.fontSize = '18px';
 
     editButton.addEventListener('click', async (event) => {
       event.preventDefault();
@@ -3409,9 +3452,10 @@ roomMenu.append(menuHeader);
     deleteButton.title = 'Excluir atividade';
     deleteButton.setAttribute('aria-label', 'Excluir atividade');
     deleteButton.className = 'secondary';
-    deleteButton.style.padding = '3px 9px';
-    deleteButton.style.fontSize = '17px';
-
+    deleteButton.style.width = '38px';
+    deleteButton.style.height = '38px';
+    deleteButton.style.padding = '0';
+    deleteButton.style.fontSize = '20px';
     deleteButton.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -3445,10 +3489,23 @@ roomMenu.append(menuHeader);
     actionButtons.append(editButton, deleteButton);
 
     if (isFurnitureMission) {
-      row.append(dragHandle, checkbox, name, itemInfo, actionButtons);
-    } else {
-      row.append(checkbox, name, completedBy, actionButtons);
-    }
+  name.style.flex = '1 1 120px';
+  name.style.minWidth = '100px';
+
+  itemInfo.style.flex = '0 1 110px';
+
+  actionButtons.style.flex = '0 0 auto';
+
+  row.append(
+    dragHandle,
+    checkbox,
+    name,
+    itemInfo,
+    actionButtons
+  );
+} else {
+  row.append(checkbox, name, completedBy, actionButtons);
+}
 
 
         if (isFurnitureMission) {
@@ -3473,39 +3530,71 @@ roomMenu.append(menuHeader);
       'Gasto: ' + moneyFormat.format(room.spent);
   });
 }
-  if (isFurnitureMission) {
+if (isFurnitureMission) {
     const totals = document.createElement('div');
-    totals.style.marginTop = '18px';
-    totals.style.padding = '14px';
-    totals.style.borderRadius = '12px';
+    totals.style.marginTop = '22px';
+    totals.style.padding = '18px';
+    totals.style.borderRadius = '16px';
     totals.style.background = 'var(--card)';
+    totals.style.border = '1px solid var(--border)';
+    totals.style.boxShadow = '0 3px 12px var(--shadow)';
     totals.style.display = 'flex';
     totals.style.flexDirection = 'column';
-    totals.style.gap = '10px';
+    totals.style.gap = '14px';
+
+    const title = document.createElement('strong');
+    title.textContent = 'Resumo financeiro da casa';
+    title.style.fontSize = '16px';
+
+    const summaryGrid = document.createElement('div');
+    summaryGrid.style.display = 'grid';
+    summaryGrid.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+    summaryGrid.style.gap = '10px';
 
     const predicted = document.createElement('div');
+    predicted.style.padding = '14px';
+    predicted.style.borderRadius = '12px';
+    predicted.style.background = 'var(--soft)';
     predicted.style.display = 'flex';
-    predicted.style.justifyContent = 'space-between';
-    predicted.style.gap = '10px';
-    predicted.innerHTML = '<strong>Total previsto</strong>';
+    predicted.style.flexDirection = 'column';
+    predicted.style.gap = '8px';
+
+    const predictedLabel = document.createElement('span');
+    predictedLabel.textContent = 'Total previsto';
+    predictedLabel.style.fontSize = '12px';
+    predictedLabel.style.color = 'var(--muted)';
 
     const predictedValue = document.createElement('strong');
     predictedValue.textContent = moneyFormat.format(totalPredicted);
-    predicted.append(predictedValue);
+    predictedValue.style.fontSize = '17px';
+    predictedValue.style.overflowWrap = 'anywhere';
+
+    predicted.append(predictedLabel, predictedValue);
 
     const spent = document.createElement('div');
+    spent.style.padding = '14px';
+    spent.style.borderRadius = '12px';
+    spent.style.background = 'var(--soft)';
     spent.style.display = 'flex';
-    spent.style.justifyContent = 'space-between';
-    spent.style.gap = '10px';
-    spent.innerHTML = '<strong>Total já gasto</strong>';
+    spent.style.flexDirection = 'column';
+    spent.style.gap = '8px';
+
+    const spentLabel = document.createElement('span');
+    spentLabel.textContent = 'Total já gasto';
+    spentLabel.style.fontSize = '12px';
+    spentLabel.style.color = 'var(--muted)';
 
     const spentValue = document.createElement('strong');
     spentValue.textContent = moneyFormat.format(totalSpent);
-    spent.append(spentValue);
+    spentValue.style.fontSize = '17px';
+    spentValue.style.overflowWrap = 'anywhere';
 
-    totals.append(predicted, spent);
-    activityList.append(totals);
-  }
+    spent.append(spentLabel, spentValue);
+
+    summaryGrid.append(predicted, spent);
+    totals.append(title, summaryGrid);
+    activityList.prepend(totals);
+}
 
   
   if (isFurnitureMission) {
