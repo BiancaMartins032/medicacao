@@ -2223,21 +2223,29 @@ async function updateMissionType() {
     mission === 'supermarket' ? 'block' : 'none';
 
   generalFields.style.display =
-    mission && mission !== 'supermarket' ? 'block' : 'none';
+    mission && mission !== 'supermarket' && mission !== 'furniture'
+      ? 'block'
+      : 'none';
 
   const title = $('missionTitle');
 
-  if (!title.value.trim()) {
-    const titles = {
-      housework: 'Arrumar a casa',
-      supermarket: 'Ir ao supermercado',
-      trip: 'Preparar uma viagem',
-      finances: 'Organizar as finanças',
-      other: ''
-    };
+  const titles = {
+  housework: 'Arrumar a casa',
+  supermarket: 'Ir ao supermercado',
+  furniture: 'Mobiliar a casa',
+  trip: 'Preparar uma viagem',
+  finances: 'Organizar as finanças',
+  other: ''
+};
 
-    title.value = titles[mission] || '';
-  }
+if (mission === 'furniture') {
+  title.value = 'Mobiliar a casa';
+} else if (
+  !title.value.trim() ||
+  title.value === 'Mobiliar a casa'
+) {
+  title.value = titles[mission] || '';
+}
 
   const options = {
     housework: [
@@ -3508,6 +3516,7 @@ requestAnimationFrame(() => {
 
 }
 
+
 async function saveSharedMission() {
   try {
     const { data: userData, error: userError } =
@@ -3519,7 +3528,7 @@ async function saveSharedMission() {
     }
 
     const missionType = $('missionType').value;
-    const missionTitle = $('missionTitle').value.trim();
+    let missionTitle = $('missionTitle').value.trim();
     const missionDetails = $('missionDetails').value.trim();
     const dueDate = $('missionDueDate').value;
     const missionReward = $('missionReward').value.trim();
@@ -3529,26 +3538,49 @@ async function saveSharedMission() {
       return false;
     }
 
-    const isFurnitureMission =
-  missionTitle.toLowerCase() === 'mobiliar a casa';
+    const isFurnitureMission = missionType === 'furniture';
 
-if (!isFurnitureMission && !dueDate) {
-  alert('Escolha a data de vencimento da missão.');
-  $('missionDueDate').focus();
-  return false;
-}
+    const furnitureItems = [
+      'Sofá',
+      'Geladeira',
+      'Fogão',
+      'Cama',
+      'Guarda-roupa',
+      'Mesa de jantar',
+      'Cadeiras',
+      'Televisão',
+      'Máquina de lavar',
+      'Micro-ondas'
+    ];
 
-if (dueDate && dueDate < today()) {
-  alert('A data de vencimento não pode ser anterior a hoje.');
-  $('missionDueDate').focus();
-  return false;
-}
+    if (isFurnitureMission) {
+      missionTitle = 'Mobiliar a casa';
+      $('missionTitle').value = missionTitle;
+    } else if (!missionTitle) {
+      alert('Informe o nome da missão.');
+      $('missionTitle').focus();
+      return false;
+    }
 
-    const selectedInputs = Array.from(
-      document.querySelectorAll(
-        '#generalMissionList input[name="missionActivities"]:checked'
-      )
-    );
+    if (!isFurnitureMission && !dueDate) {
+      alert('Escolha a data de vencimento da missão.');
+      $('missionDueDate').focus();
+      return false;
+    }
+
+    if (dueDate && dueDate < today()) {
+      alert('A data de vencimento não pode ser anterior a hoje.');
+      $('missionDueDate').focus();
+      return false;
+    }
+
+    const selectedInputs = isFurnitureMission
+      ? []
+      : Array.from(
+          document.querySelectorAll(
+            '#generalMissionList input[name="missionActivities"]:checked'
+          )
+        );
 
     const activities = selectedInputs.map(checkbox => {
       const card = checkbox.closest('label');
@@ -3577,13 +3609,13 @@ if (dueDate && dueDate < today()) {
     }).filter(activity => activity.name);
 
     if (
-  missionType !== 'supermarket' &&
-  !isFurnitureMission &&
-  activities.length === 0
-) {
-  alert('Selecione ou adicione pelo menos uma atividade.');
-  return false;
-}
+      missionType !== 'supermarket' &&
+      !isFurnitureMission &&
+      activities.length === 0
+    ) {
+      alert('Selecione ou adicione pelo menos uma atividade.');
+      return false;
+    }
 
     const { data: coupleData, error: coupleError } =
       await supabaseClient.rpc('get_my_couple_status');
@@ -3602,52 +3634,60 @@ if (dueDate && dueDate < today()) {
     }
 
     const userId = userData.user.id;
-const coupleId = coupleData[0].couple_id;
+    const coupleId = coupleData[0].couple_id;
 
-if (isFurnitureMission) {
-  const { data: existingFurnitureMission, error: duplicateError } =
-    await supabaseClient
-      .from('shared_tasks')
-      .select('id')
-      .eq('couple_id', coupleId)
-      .ilike('title', 'Mobiliar a casa');
+    if (isFurnitureMission) {
+      const { data: existingFurnitureMission, error: duplicateError } =
+        await supabaseClient
+          .from('shared_tasks')
+          .select('id')
+          .eq('couple_id', coupleId)
+          .ilike('title', 'Mobiliar a casa');
 
-  if (duplicateError) throw duplicateError;
+      if (duplicateError) throw duplicateError;
 
-  if (existingFurnitureMission && existingFurnitureMission.length > 0) {
-    alert('A missão Mobiliar a casa já existe para este casal.');
-    return false;
-  }
-}
+      if (existingFurnitureMission && existingFurnitureMission.length > 0) {
+        alert('A missão Mobiliar a casa já existe para este casal.');
+        return false;
+      }
+    }
 
     const { data: savedMission, error: missionError } =
       await supabaseClient
         .from('shared_tasks')
         .insert({
-  couple_id: coupleId,
-  title: missionTitle,
-  category: missionType,
-  due_date: dueDate || null,
-  due_time: null,
-  repeat_rule: 'none',
-  details: missionDetails,
-  reward: missionReward || null,
-  created_by: userId,
-  points: 0
-})
+          couple_id: coupleId,
+          title: missionTitle,
+          category: missionType,
+          due_date: isFurnitureMission ? null : dueDate,
+          due_time: null,
+          repeat_rule: 'none',
+          details: missionDetails,
+          reward: missionReward || null,
+          created_by: userId,
+          points: 0
+        })
         .select('id')
         .single();
 
     if (missionError) throw missionError;
 
-    if (activities.length > 0) {
-      const activityRows = activities.map(activity => ({
-        task_id: savedMission.id,
-        activity_name: activity.name,
-        points: activity.points,
-        created_by: userId
-      }));
+    const activityRows = isFurnitureMission
+      ? furnitureItems.map(name => ({
+          task_id: savedMission.id,
+          activity_name: name,
+          points: 0,
+          item_price: null,
+          created_by: userId
+        }))
+      : activities.map(activity => ({
+          task_id: savedMission.id,
+          activity_name: activity.name,
+          points: activity.points,
+          created_by: userId
+        }));
 
+    if (activityRows.length > 0) {
       const { error: activitiesError } =
         await supabaseClient
           .from('shared_mission_activities')
@@ -3661,8 +3701,9 @@ if (isFurnitureMission) {
 
         throw activitiesError;
       }
+    }
 
-      // Atualiza os pontos padrão compartilhados pelo casal.
+    if (!isFurnitureMission && activities.length > 0) {
       try {
         const { data: existingDefaults, error: defaultsError } =
           await supabaseClient
@@ -3722,7 +3763,12 @@ if (isFurnitureMission) {
       }
     }
 
-    alert('Missão compartilhada salva com sucesso!');
+    alert(
+      isFurnitureMission
+        ? 'Missão Mobiliar a casa criada com os móveis iniciais!'
+        : 'Missão compartilhada salva com sucesso!'
+    );
+
     return true;
 
   } catch (error) {
@@ -3731,6 +3777,7 @@ if (isFurnitureMission) {
     return false;
   }
 }
+
 
 
 
