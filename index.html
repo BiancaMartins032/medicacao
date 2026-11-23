@@ -3867,17 +3867,20 @@ activityList.append(roomCard);
 
 orderedActivities.forEach(activity => {
 
-    const row = document.createElement('div');
-row.style.display = 'flex';
+    
+const row = document.createElement('div');
+row.style.display = 'grid';
+row.style.gridTemplateColumns = '38px minmax(0, 1fr) minmax(90px, auto) 38px';
 row.style.alignItems = 'center';
-row.style.flexWrap = 'wrap';
-row.style.gap = '12px';
-row.style.padding = '15px 10px';
+row.style.gap = '10px';
+row.style.padding = '14px 10px';
 row.style.borderBottom = '1px solid var(--border)';
 row.style.minWidth = '0';
 row.style.borderRadius = '12px';
 row.style.transition = 'background 0.2s ease';
 row.style.boxSizing = 'border-box';
+row.style.width = '100%';
+
   row.addEventListener('mouseenter', () => {
   row.style.background = 'var(--bg)';
 });
@@ -3891,16 +3894,37 @@ let dragHandle = null;
 
 if (isFurnitureMission) {
   const menuWrapper = document.createElement('div');
+  menuWrapper.style.width = '38px';
+  menuWrapper.style.height = '38px';
   menuWrapper.style.position = 'relative';
   menuWrapper.style.flexShrink = '0';
 
-  dragHandle = document.createElement('button');
-  dragHandle.type = 'button';
-  dragHandle.textContent = '⋮';
-  dragHandle.title = 'Mover para outro cômodo';
-  dragHandle.className = 'secondary';
-  dragHandle.style.fontSize = '22px';
-  dragHandle.style.padding = '5px 10px';
+  
+dragHandle = document.createElement('button');
+dragHandle.type = 'button';
+dragHandle.innerHTML = `
+  <svg viewBox="0 0 24 24" width="19" height="19"
+       fill="none" stroke="currentColor" stroke-width="1.8"
+       stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 12h14"/>
+    <path d="m13 6 6 6-6 6"/>
+    <path d="m11 6-6 6 6 6"/>
+  </svg>
+`;
+dragHandle.title = 'Mover para outro cômodo';
+dragHandle.setAttribute('aria-label', 'Mover para outro cômodo');
+dragHandle.className = 'secondary';
+dragHandle.style.width = '38px';
+dragHandle.style.height = '38px';
+dragHandle.style.minWidth = '38px';
+dragHandle.style.padding = '0';
+dragHandle.style.display = 'flex';
+dragHandle.style.alignItems = 'center';
+dragHandle.style.justifyContent = 'center';
+dragHandle.style.borderRadius = '10px';
+dragHandle.style.background = 'var(--soft)';
+dragHandle.style.color = 'var(--accent)';
+
 
   const roomMenu = document.createElement('div');
   roomMenu.style.display = 'none';
@@ -4428,12 +4452,23 @@ if (isFurnitureMission) {
 }
 
 if (isFurnitureMission) {
-  name.style.flex = '1 1 120px';
-  name.style.minWidth = '100px';
+  
+name.style.minWidth = '0';
+name.style.width = '100%';
+name.style.fontSize = '14px';
+name.style.lineHeight = '1.4';
+name.style.overflowWrap = 'anywhere';
 
-  itemInfo.style.flex = '0 1 110px';
+itemInfo.style.width = '100%';
+itemInfo.style.minWidth = '0';
+itemInfo.style.maxWidth = '115px';
+itemInfo.style.alignItems = 'flex-end';
+itemInfo.style.gap = '6px';
 
-  actionButtons.style.flex = '0 0 auto';
+actionButtons.style.width = '38px';
+actionButtons.style.height = '38px';
+actionButtons.style.flexShrink = '0';
+actionButtons.style.justifyContent = 'center';
 
   row.append(
     dragHandle,
