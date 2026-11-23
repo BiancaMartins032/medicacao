@@ -997,15 +997,18 @@ body[data-theme="black"] .monthly-dot.missed {
     placeholder="Ex.: Organizar a cozinha"
   >
 
-  <label for="newSharedActivityPoints">Pontuação</label>
-  <input
-    id="newSharedActivityPoints"
-    type="number"
-    min="0"
-    max="10000"
-    step="1"
-    value="0"
-  >
+  <label id="newSharedActivityValueLabel" for="newSharedActivityPoints">
+  Pontuação
+</label>
+
+<input
+  id="newSharedActivityPoints"
+  type="number"
+  min="0"
+  max="10000"
+  step="1"
+  value="0"
+>
 
   <button
     type="button"
@@ -1067,10 +1070,9 @@ body[data-theme="black"] .monthly-dot.missed {
     >
         <label for="missionDueDate">Data de vencimento</label>
     <input
-      id="missionDueDate"
-      type="date"
-      required
-    >
+  id="missionDueDate"
+  type="date"
+>
     <label for="missionReward">Prêmio ao completar 100%</label>
 <input
   id="missionReward"
@@ -2675,15 +2677,41 @@ function createItemElement(item, date) {
 let sharedTasksLoadVersion = 0;
 
   let currentSharedMissionId = null;
-  function openSharedMissionModal(task, activities) {
+  
+function openSharedMissionModal(task, activities) {
   const modal = $('sharedMissionModal');
-    currentSharedMissionId = task.id;
+  currentSharedMissionId = task.id;
 
   $('sharedMissionModalTitle').textContent = task.title;
-    // Exibe a data e o prêmio salvos na missão.
-$('sharedMissionDueDate').value = task.due_date || '';
-$('sharedMissionReward').value = task.reward || '';
-$('sharedMissionSettingsMessage').textContent = '';
+
+  const isFurnitureMission =
+    (task.title || '').trim().toLowerCase() === 'mobiliar a casa';
+
+  const valueLabel = $('newSharedActivityValueLabel');
+  const valueInput = $('newSharedActivityPoints');
+
+  if (isFurnitureMission) {
+    valueLabel.textContent = 'Valor (R$)';
+    valueInput.type = 'text';
+    valueInput.inputMode = 'decimal';
+    valueInput.min = '0';
+    valueInput.removeAttribute('max');
+    valueInput.step = '0.01';
+    valueInput.value = '';
+    valueInput.placeholder = 'Ex.: 1800,00';
+  } else {
+    valueLabel.textContent = 'Pontuação';
+    valueInput.type = 'number';
+    valueInput.min = '0';
+    valueInput.max = '10000';
+    valueInput.step = '1';
+    valueInput.value = '0';
+    valueInput.placeholder = '';
+  }
+
+  $('sharedMissionDueDate').value = task.due_date || '';
+  $('sharedMissionReward').value = task.reward || '';
+  $('sharedMissionSettingsMessage').textContent = '';
 
   const activityList = $('sharedMissionActivities');
   activityList.replaceChildren();
@@ -2697,15 +2725,23 @@ $('sharedMissionSettingsMessage').textContent = '';
     : 0;
 
   if (percentage === 100) {
-  $('sharedMissionPercentage').textContent = task.reward
-    ? '🏆 Prêmio conquistado: ' + task.reward
-    : '🏆 Missão concluída!';
-} else {
-  $('sharedMissionPercentage').textContent = percentage + '%';
-}
+    $('sharedMissionPercentage').textContent = task.reward
+      ? '🏆 Prêmio conquistado: ' + task.reward
+      : '🏆 Missão concluída!';
+  } else {
+    $('sharedMissionPercentage').textContent = percentage + '%';
+  }
 
-$('sharedMissionProgressFill').style.transition = 'width 0.6s ease';
-$('sharedMissionProgressFill').style.width = percentage + '%';
+  $('sharedMissionProgressFill').style.transition = 'width 0.6s ease';
+  $('sharedMissionProgressFill').style.width = percentage + '%';
+
+  let totalPredicted = 0;
+  let totalSpent = 0;
+
+  const moneyFormat = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
 
   if (!activities.length) {
     const empty = document.createElement('div');
@@ -2721,7 +2757,6 @@ $('sharedMissionProgressFill').style.width = percentage + '%';
     row.style.gap = '10px';
     row.style.padding = '12px 0';
     row.style.borderBottom = '1px solid var(--border)';
-    row.style.cursor = 'pointer';
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -2740,23 +2775,104 @@ $('sharedMissionProgressFill').style.width = percentage + '%';
       name.style.textDecoration = 'line-through';
       name.style.opacity = '0.65';
     }
+
     const completedBy = document.createElement('span');
+    completedBy.style.fontSize = '12px';
+    completedBy.style.color = 'var(--muted)';
+    completedBy.style.textAlign = 'right';
+    completedBy.style.marginLeft = 'auto';
+    completedBy.style.flexShrink = '0';
+    completedBy.style.whiteSpace = 'nowrap';
 
-completedBy.style.fontSize = '12px';
-completedBy.style.color = 'var(--muted)';
-completedBy.style.textAlign = 'right';
-completedBy.style.marginLeft = 'auto';
-completedBy.style.flexShrink = '0';
-completedBy.style.whiteSpace = 'nowrap';
+    let itemInfo = null;
 
-if (activity.is_completed && activity.completed_by) {
-  const personName =
-    sharedMemberNames[activity.completed_by] || 'Nome não informado';
+    if (isFurnitureMission) {
+      const itemPrice = activity.item_price === null ||
+        activity.item_price === undefined
+          ? null
+          : Number(activity.item_price);
 
-  completedBy.textContent = 'Feito por: ' + personName;
-} else {
-  completedBy.style.display = 'none';
-}
+      if (itemPrice !== null && Number.isFinite(itemPrice)) {
+        totalPredicted += itemPrice;
+
+        if (activity.is_completed) {
+          totalSpent += itemPrice;
+        }
+      }
+
+      itemInfo = document.createElement('div');
+      itemInfo.style.display = 'flex';
+      itemInfo.style.flexDirection = 'column';
+      itemInfo.style.alignItems = 'flex-end';
+      itemInfo.style.gap = '4px';
+      itemInfo.style.flexShrink = '0';
+
+      const priceInput = document.createElement('input');
+      priceInput.type = 'text';
+      priceInput.inputMode = 'decimal';
+      priceInput.placeholder = 'R$ 0,00';
+      priceInput.value = itemPrice === null
+        ? ''
+        : itemPrice.toFixed(2).replace('.', ',');
+      priceInput.style.width = '105px';
+      priceInput.style.padding = '5px';
+      priceInput.style.textAlign = 'right';
+      priceInput.style.fontSize = '13px';
+
+      priceInput.addEventListener('change', async () => {
+        const raw = priceInput.value.trim();
+        let newPrice = null;
+
+        if (raw !== '') {
+          let normalized = raw.replace(/\s/g, '');
+
+          if (normalized.includes(',')) {
+            normalized = normalized.replace(/\./g, '').replace(',', '.');
+          }
+
+          newPrice = Number(normalized);
+
+          if (!Number.isFinite(newPrice) || newPrice < 0) {
+            alert('Informe um valor válido em reais.');
+            priceInput.value = itemPrice === null
+              ? ''
+              : itemPrice.toFixed(2).replace('.', ',');
+            return;
+          }
+        }
+
+        priceInput.disabled = true;
+
+        const { error } = await supabaseClient
+          .from('shared_mission_activities')
+          .update({ item_price: newPrice })
+          .eq('id', activity.id);
+
+        if (error) {
+          console.error('Erro ao atualizar preço:', error);
+          alert('Não foi possível salvar o valor.');
+        }
+
+        await openSharedMissionWithFreshData(task.id);
+        await loadSharedTasks();
+      });
+
+      const status = document.createElement('span');
+      status.textContent = activity.is_completed
+        ? 'Comprado'
+        : 'Falta comprar';
+      status.style.fontSize = '11px';
+      status.style.color = 'var(--muted)';
+
+      itemInfo.append(priceInput, status);
+    } else if (activity.is_completed && activity.completed_by) {
+      const personName =
+        sharedMemberNames[activity.completed_by] || 'Nome não informado';
+
+      completedBy.textContent = 'Feito por: ' + personName;
+    } else {
+      completedBy.style.display = 'none';
+    }
 
     checkbox.addEventListener('change', async () => {
       checkbox.disabled = true;
@@ -2766,7 +2882,7 @@ if (activity.is_completed && activity.completed_by) {
 
       if (userError || !userData.user) {
         alert('Não foi possível identificar seu usuário.');
-        loadSharedTasks();
+        await loadSharedTasks();
         return;
       }
 
@@ -2781,73 +2897,115 @@ if (activity.is_completed && activity.completed_by) {
         })
         .eq('id', activity.id);
 
-           if (error) {
+      if (error) {
         console.error('Erro ao atualizar atividade:', error);
         alert('Não foi possível atualizar a atividade.');
         checkbox.checked = activity.is_completed;
         checkbox.disabled = false;
         return;
       }
+
       await openSharedMissionWithFreshData(task.id);
       await loadSharedTasks();
     });
 
     const deleteButton = document.createElement('button');
-deleteButton.type = 'button';
-deleteButton.textContent = 'Excluir';
-deleteButton.className = 'secondary';
-deleteButton.style.padding = '6px 10px';
-deleteButton.style.fontSize = '12px';
-deleteButton.style.flexShrink = '0';
-
-deleteButton.addEventListener('click', async (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-
-  const confirmed = confirm(
-    `Deseja excluir a atividade "${activity.activity_name}"? Essa ação não poderá ser desfeita.`
-  );
-
-  if (!confirmed) return;
-
-  deleteButton.disabled = true;
-  deleteButton.textContent = 'Excluindo...';
-
-  const { error } = await supabaseClient
-    .from('shared_mission_activities')
-    .delete()
-    .eq('id', activity.id);
-
-  if (error) {
-    console.error('Erro ao excluir atividade:', error);
-    alert('Não foi possível excluir a atividade.');
-    deleteButton.disabled = false;
+    deleteButton.type = 'button';
     deleteButton.textContent = 'Excluir';
-    return;
-  }
+    deleteButton.className = 'secondary';
+    deleteButton.style.padding = '6px 10px';
+    deleteButton.style.fontSize = '12px';
+    deleteButton.style.flexShrink = '0';
 
-  await openSharedMissionWithFreshData(task.id);
-  await loadSharedTasks();
-});
+    deleteButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
 
-row.append(checkbox, name, completedBy, deleteButton);
-activityList.append(row);
+      const confirmed = confirm(
+        `Deseja excluir a atividade "${activity.activity_name}"? Essa ação não poderá ser desfeita.`
+      );
+
+      if (!confirmed) return;
+
+      deleteButton.disabled = true;
+      deleteButton.textContent = 'Excluindo...';
+
+      const { error } = await supabaseClient
+        .from('shared_mission_activities')
+        .delete()
+        .eq('id', activity.id);
+
+      if (error) {
+        console.error('Erro ao excluir atividade:', error);
+        alert('Não foi possível excluir a atividade.');
+        deleteButton.disabled = false;
+        deleteButton.textContent = 'Excluir';
+        return;
+      }
+
+      await openSharedMissionWithFreshData(task.id);
+      await loadSharedTasks();
+    });
+
+    if (isFurnitureMission) {
+      row.append(checkbox, name, itemInfo, deleteButton);
+    } else {
+      row.append(checkbox, name, completedBy, deleteButton);
+    }
+
+    activityList.append(row);
   });
+
+  if (isFurnitureMission) {
+    const totals = document.createElement('div');
+    totals.style.marginTop = '18px';
+    totals.style.padding = '14px';
+    totals.style.borderRadius = '12px';
+    totals.style.background = 'var(--card)';
+    totals.style.display = 'flex';
+    totals.style.flexDirection = 'column';
+    totals.style.gap = '10px';
+
+    const predicted = document.createElement('div');
+    predicted.style.display = 'flex';
+    predicted.style.justifyContent = 'space-between';
+    predicted.style.gap = '10px';
+    predicted.innerHTML = '<strong>Total previsto</strong>';
+
+    const predictedValue = document.createElement('strong');
+    predictedValue.textContent = moneyFormat.format(totalPredicted);
+    predicted.append(predictedValue);
+
+    const spent = document.createElement('div');
+    spent.style.display = 'flex';
+    spent.style.justifyContent = 'space-between';
+    spent.style.gap = '10px';
+    spent.innerHTML = '<strong>Total já gasto</strong>';
+
+    const spentValue = document.createElement('strong');
+    spentValue.textContent = moneyFormat.format(totalSpent);
+    spent.append(spentValue);
+
+    totals.append(predicted, spent);
+    activityList.append(totals);
+  }
 
   modal.style.display = 'flex';
 }
 
+
   
+
 async function addSharedMissionActivity() {
   const nameInput = $('newSharedActivityName');
   const pointsInput = $('newSharedActivityPoints');
   const message = $('newSharedActivityMessage');
 
+  const missionId = currentSharedMissionId;
   const activityName = nameInput.value.trim();
-  const rawPoints = pointsInput.value.trim();
-  const points = Number(rawPoints);
+  const rawValue = pointsInput.value.trim();
 
-  if (!currentSharedMissionId) {
+  if (!missionId) {
     message.textContent = 'Não foi possível identificar a missão.';
     return;
   }
@@ -2858,18 +3016,7 @@ async function addSharedMissionActivity() {
     return;
   }
 
-  if (
-    rawPoints === '' ||
-    !Number.isInteger(points) ||
-    points < 0 ||
-    points > 10000
-  ) {
-    message.textContent = 'Informe uma pontuação inteira entre 0 e 10000.';
-    pointsInput.focus();
-    return;
-  }
-
-  message.textContent = 'Salvando atividade...';
+  message.textContent = 'Verificando missão...';
 
   try {
     const { data: userData, error: userError } =
@@ -2892,12 +3039,11 @@ async function addSharedMissionActivity() {
     const coupleId = coupleData[0].couple_id;
     const userId = userData.user.id;
 
-    // Confere se a missão pertence ao casal conectado.
     const { data: mission, error: missionError } =
       await supabaseClient
         .from('shared_tasks')
-        .select('id, couple_id')
-        .eq('id', currentSharedMissionId)
+        .select('id, couple_id, title')
+        .eq('id', missionId)
         .eq('couple_id', coupleId)
         .single();
 
@@ -2905,12 +3051,53 @@ async function addSharedMissionActivity() {
       throw new Error('Não foi possível localizar essa missão.');
     }
 
-    // Evita cadastrar duas atividades com o mesmo nome na missão.
+    const isFurnitureMission =
+      (mission.title || '').trim().toLowerCase() === 'mobiliar a casa';
+
+    let points = 0;
+    let itemPrice = null;
+
+    if (isFurnitureMission) {
+      if (rawValue !== '') {
+        let normalizedValue = rawValue.replace(/\s/g, '');
+
+        if (normalizedValue.includes(',')) {
+          normalizedValue = normalizedValue
+            .replace(/\./g, '')
+            .replace(',', '.');
+        }
+
+        itemPrice = Number(normalizedValue);
+
+        if (!Number.isFinite(itemPrice) || itemPrice < 0) {
+          message.textContent = 'Informe um valor válido em reais.';
+          pointsInput.focus();
+          return;
+        }
+      }
+    } else {
+      points = Number(rawValue);
+
+      if (
+        rawValue === '' ||
+        !Number.isInteger(points) ||
+        points < 0 ||
+        points > 10000
+      ) {
+        message.textContent =
+          'Informe uma pontuação inteira entre 0 e 10000.';
+        pointsInput.focus();
+        return;
+      }
+    }
+
+    message.textContent = 'Verificando atividades existentes...';
+
     const { data: existingActivities, error: existingError } =
       await supabaseClient
         .from('shared_mission_activities')
         .select('id, activity_name')
-        .eq('task_id', currentSharedMissionId);
+        .eq('task_id', missionId);
 
     if (existingError) throw existingError;
 
@@ -2924,74 +3111,79 @@ async function addSharedMissionActivity() {
       return;
     }
 
-    // Salva a atividade na missão compartilhada.
+    message.textContent = 'Salvando atividade...';
+
     const { error: insertError } =
       await supabaseClient
         .from('shared_mission_activities')
         .insert({
-          task_id: currentSharedMissionId,
+          task_id: missionId,
           activity_name: activityName,
           points: points,
+          item_price: isFurnitureMission ? itemPrice : null,
           created_by: userId
         });
 
     if (insertError) throw insertError;
 
-    // Atualiza os pontos padrão compartilhados pelo casal.
     let defaultsWarning = '';
 
-    try {
-      const { data: defaults, error: defaultsError } =
-        await supabaseClient
-          .from('shared_activity_point_defaults')
-          .select('id, activity_name')
-          .eq('couple_id', coupleId);
-
-      if (defaultsError) throw defaultsError;
-
-      const existingDefault = (defaults || []).find(item =>
-        item.activity_name.trim().toLowerCase() ===
-        activityName.toLowerCase()
-      );
-
-      if (existingDefault) {
-        const { error: updateError } =
+    // Pontuação padrão continua funcionando nas outras missões.
+    if (!isFurnitureMission) {
+      try {
+        const { data: defaults, error: defaultsError } =
           await supabaseClient
             .from('shared_activity_point_defaults')
-            .update({
-              points: points,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingDefault.id);
+            .select('id, activity_name')
+            .eq('couple_id', coupleId);
 
-        if (updateError) throw updateError;
+        if (defaultsError) throw defaultsError;
 
-      } else {
-        const { error: defaultInsertError } =
-          await supabaseClient
-            .from('shared_activity_point_defaults')
-            .insert({
-              couple_id: coupleId,
-              activity_name: activityName,
-              points: points,
-              created_by: userId
-            });
+        const existingDefault = (defaults || []).find(item =>
+          item.activity_name.trim().toLowerCase() ===
+          activityName.toLowerCase()
+        );
 
-        if (defaultInsertError) throw defaultInsertError;
+        if (existingDefault) {
+          const { error: updateError } =
+            await supabaseClient
+              .from('shared_activity_point_defaults')
+              .update({
+                points: points,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingDefault.id);
+
+          if (updateError) throw updateError;
+
+        } else {
+          const { error: defaultInsertError } =
+            await supabaseClient
+              .from('shared_activity_point_defaults')
+              .insert({
+                couple_id: coupleId,
+                activity_name: activityName,
+                points: points,
+                created_by: userId
+              });
+
+          if (defaultInsertError) throw defaultInsertError;
+        }
+
+      } catch (defaultsError) {
+        console.error('Erro ao atualizar pontos padrão:', defaultsError);
+        defaultsWarning =
+          ' A atividade foi salva, mas os pontos padrão não foram atualizados.';
       }
-
-    } catch (defaultsError) {
-      console.error('Erro ao atualizar pontos padrão:', defaultsError);
-      defaultsWarning =
-        ' A atividade foi salva, mas os pontos padrão não foram atualizados.';
     }
 
     nameInput.value = '';
-    pointsInput.value = '0';
+    pointsInput.value = isFurnitureMission ? '' : '0';
 
-    message.textContent = 'Atividade adicionada com sucesso!' + defaultsWarning;
+    message.textContent =
+      'Atividade adicionada com sucesso!' + defaultsWarning;
 
-    await openSharedMissionWithFreshData(currentSharedMissionId);
+    await openSharedMissionWithFreshData(missionId);
     await loadSharedTasks();
 
   } catch (error) {
@@ -3000,6 +3192,7 @@ async function addSharedMissionActivity() {
       'Não foi possível adicionar a atividade.';
   }
 }
+
 
   async function saveSharedMissionSettings() {
   const message = $('sharedMissionSettingsMessage');
@@ -3011,37 +3204,55 @@ async function addSharedMissionActivity() {
     return;
   }
 
-  if (!dueDate) {
-    message.textContent = 'Escolha uma data de vencimento.';
-    $('sharedMissionDueDate').focus();
-    return;
-  }
+  message.textContent = 'Verificando missão...';
 
-  if (dueDate < today()) {
-    message.textContent = 'A data não pode ser anterior a hoje.';
-    $('sharedMissionDueDate').focus();
-    return;
-  }
+  try {
+    const { data: mission, error: missionError } =
+      await supabaseClient
+        .from('shared_tasks')
+        .select('id, title')
+        .eq('id', currentSharedMissionId)
+        .single();
 
-  message.textContent = 'Salvando alterações...';
+    if (missionError || !mission) {
+      throw new Error('Não foi possível localizar a missão.');
+    }
 
-  const { error } = await supabaseClient
-    .from('shared_tasks')
-    .update({
-      due_date: dueDate,
-      reward: reward || null
-    })
-    .eq('id', currentSharedMissionId);
+    const isFurnitureMission =
+      (mission.title || '').trim().toLowerCase() === 'mobiliar a casa';
 
-  if (error) {
+    if (!isFurnitureMission && !dueDate) {
+      message.textContent = 'Escolha uma data de vencimento.';
+      $('sharedMissionDueDate').focus();
+      return;
+    }
+
+    if (dueDate && dueDate < today()) {
+      message.textContent = 'A data não pode ser anterior a hoje.';
+      $('sharedMissionDueDate').focus();
+      return;
+    }
+
+    message.textContent = 'Salvando alterações...';
+
+    const { error } = await supabaseClient
+      .from('shared_tasks')
+      .update({
+        due_date: dueDate || null,
+        reward: reward || null
+      })
+      .eq('id', currentSharedMissionId);
+
+    if (error) throw error;
+
+    message.textContent = 'Prazo e prêmio salvos com sucesso!';
+
+    await loadSharedTasks();
+
+  } catch (error) {
     console.error('Erro ao salvar prazo e prêmio:', error);
-    message.textContent = 'Não foi possível salvar as alterações.';
-    return;
+    message.textContent = 'Não foi possível salvar: ' + error.message;
   }
-
-  message.textContent = 'Prazo e prêmio salvos com sucesso!';
-
-  await loadSharedTasks();
 }
 function closeSharedMissionModal() {
   $('sharedMissionModal').style.display = 'none';
@@ -3050,7 +3261,7 @@ function closeSharedMissionModal() {
 async function openSharedMissionWithFreshData(taskId) {
   const { data: activities, error } = await supabaseClient
     .from('shared_mission_activities')
-    .select('id, task_id, activity_name, is_completed, completed_by, points')
+    .select('id, task_id, activity_name, is_completed, completed_by, points, item_price')
     .eq('task_id', taskId)
     .order('created_at', { ascending: true });
 
@@ -3196,7 +3407,7 @@ if (todayTasks.length) {
   const { data: missionActivities, error: activitiesError } =
     await supabaseClient
       .from('shared_mission_activities')
-      .select('id, task_id, activity_name, is_completed, completed_by, points')
+      .select('id, task_id, activity_name, is_completed, completed_by, points, item_price')
       .in('task_id', taskIds)
       .order('created_at', { ascending: true });
 
@@ -3317,18 +3528,16 @@ async function saveSharedMission() {
       return false;
     }
 
-    if (!missionTitle) {
-      alert('Informe o nome da missão.');
-      $('missionTitle').focus();
-      return false;
-    }
-    if (!dueDate) {
+    const isFurnitureMission =
+  missionTitle.toLowerCase() === 'mobiliar a casa';
+
+if (!isFurnitureMission && !dueDate) {
   alert('Escolha a data de vencimento da missão.');
   $('missionDueDate').focus();
   return false;
 }
 
-if (dueDate < today()) {
+if (dueDate && dueDate < today()) {
   alert('A data de vencimento não pode ser anterior a hoje.');
   $('missionDueDate').focus();
   return false;
@@ -3366,10 +3575,14 @@ if (dueDate < today()) {
       };
     }).filter(activity => activity.name);
 
-    if (missionType !== 'supermarket' && activities.length === 0) {
-      alert('Selecione ou adicione pelo menos uma atividade.');
-      return false;
-    }
+    if (
+  missionType !== 'supermarket' &&
+  !isFurnitureMission &&
+  activities.length === 0
+) {
+  alert('Selecione ou adicione pelo menos uma atividade.');
+  return false;
+}
 
     const { data: coupleData, error: coupleError } =
       await supabaseClient.rpc('get_my_couple_status');
@@ -3388,7 +3601,23 @@ if (dueDate < today()) {
     }
 
     const userId = userData.user.id;
-    const coupleId = coupleData[0].couple_id;
+const coupleId = coupleData[0].couple_id;
+
+if (isFurnitureMission) {
+  const { data: existingFurnitureMission, error: duplicateError } =
+    await supabaseClient
+      .from('shared_tasks')
+      .select('id')
+      .eq('couple_id', coupleId)
+      .ilike('title', 'Mobiliar a casa');
+
+  if (duplicateError) throw duplicateError;
+
+  if (existingFurnitureMission && existingFurnitureMission.length > 0) {
+    alert('A missão Mobiliar a casa já existe para este casal.');
+    return false;
+  }
+}
 
     const { data: savedMission, error: missionError } =
       await supabaseClient
@@ -3397,7 +3626,7 @@ if (dueDate < today()) {
   couple_id: coupleId,
   title: missionTitle,
   category: missionType,
-  due_date: dueDate,
+  due_date: dueDate || null,
   due_time: null,
   repeat_rule: 'none',
   details: missionDetails,
