@@ -2934,17 +2934,79 @@ orderedActivities.forEach(activity => {
       await loadSharedTasks();
     });
 
+    
+    const actionButtons = document.createElement('div');
+    actionButtons.style.display = 'flex';
+    actionButtons.style.flexDirection = 'column';
+    actionButtons.style.gap = '4px';
+    actionButtons.style.flexShrink = '0';
+
+    // Botão para editar o nome
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.textContent = '✎';
+    editButton.title = 'Editar nome';
+    editButton.setAttribute('aria-label', 'Editar nome');
+    editButton.className = 'secondary';
+    editButton.style.padding = '3px 9px';
+    editButton.style.fontSize = '17px';
+
+    editButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const newName = prompt(
+        'Digite o novo nome:',
+        activity.activity_name
+      );
+
+      if (newName === null) return;
+
+      const updatedName = newName.trim();
+
+      if (!updatedName) {
+        alert('O nome não pode ficar vazio.');
+        return;
+      }
+
+      const alreadyExists = activities.some(item =>
+        item.id !== activity.id &&
+        item.activity_name.trim().toLowerCase() ===
+        updatedName.toLowerCase()
+      );
+
+      if (alreadyExists) {
+        alert('Já existe uma atividade com esse nome.');
+        return;
+      }
+
+      editButton.disabled = true;
+
+      const { error } = await supabaseClient
+        .from('shared_mission_activities')
+        .update({ activity_name: updatedName })
+        .eq('id', activity.id);
+
+      if (error) {
+        console.error('Erro ao editar atividade:', error);
+        alert('Não foi possível alterar o nome.');
+        editButton.disabled = false;
+        return;
+      }
+
+      await openSharedMissionWithFreshData(task.id);
+      await loadSharedTasks();
+    });
+
+    // Botão para excluir
     const deleteButton = document.createElement('button');
     deleteButton.type = 'button';
     deleteButton.textContent = '×';
     deleteButton.title = 'Excluir atividade';
     deleteButton.setAttribute('aria-label', 'Excluir atividade');
-    deleteButton.style.fontSize = '20px';
-    deleteButton.style.padding = '2px 9px';
     deleteButton.className = 'secondary';
-    deleteButton.style.padding = '6px 10px';
-    deleteButton.style.fontSize = '12px';
-    deleteButton.style.flexShrink = '0';
+    deleteButton.style.padding = '3px 9px';
+    deleteButton.style.fontSize = '17px';
 
     deleteButton.addEventListener('click', async (event) => {
       event.preventDefault();
@@ -2957,7 +3019,7 @@ orderedActivities.forEach(activity => {
       if (!confirmed) return;
 
       deleteButton.disabled = true;
-      deleteButton.textContent = 'Excluindo...';
+      deleteButton.textContent = '...';
 
       const { error } = await supabaseClient
         .from('shared_mission_activities')
@@ -2976,11 +3038,14 @@ orderedActivities.forEach(activity => {
       await loadSharedTasks();
     });
 
+    actionButtons.append(editButton, deleteButton);
+
     if (isFurnitureMission) {
-      row.append(checkbox, name, itemInfo, deleteButton);
+      row.append(checkbox, name, itemInfo, actionButtons);
     } else {
-      row.append(checkbox, name, completedBy, deleteButton);
+      row.append(checkbox, name, completedBy, actionButtons);
     }
+
 
     activityList.append(row);
   });
