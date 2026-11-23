@@ -2850,11 +2850,16 @@ if (isFurnitureMission) {
   dragHandle.style.color = 'var(--muted)';
   dragHandle.style.flexShrink = '0';
   dragHandle.style.touchAction = 'none';
+  dragHandle.style.position = 'relative';
+  dragHandle.style.zIndex = '5';
+  dragHandle.style.padding = '8px';
+  dragHandle.style.display = 'inline-flex';
+  dragHandle.style.alignItems = 'center';
   dragHandle.style.userSelect = 'none';
 
   dragHandle.addEventListener('pointerdown', event => {
     event.preventDefault();
-
+    console.log('Iniciou movimentação do móvel:', activity.activity_name);
     row.style.opacity = '0.45';
     dragHandle.style.cursor = 'grabbing';
 
@@ -2869,7 +2874,6 @@ if (isFurnitureMission) {
       });
 
       const roomTarget = target?.closest('[data-room]');
-
       if (roomTarget) {
         roomTarget.style.background = 'var(--card)';
       }
