@@ -2870,10 +2870,12 @@ if (isFurnitureMission) {
 
   const roomMenu = document.createElement('div');
   roomMenu.style.display = 'none';
-  roomMenu.style.position = 'absolute';
-  roomMenu.style.top = '100%';
-  roomMenu.style.right = '0';
-  roomMenu.style.width = '210px';
+ roomMenu.style.position = 'absolute';
+roomMenu.style.top = '0';
+roomMenu.style.left = '100%';
+roomMenu.style.right = 'auto';
+roomMenu.style.width = '210px';
+roomMenu.style.maxWidth = 'min(210px, 75vw)';
   roomMenu.style.maxHeight = '260px';
   roomMenu.style.overflowY = 'auto';
   roomMenu.style.padding = '10px';
