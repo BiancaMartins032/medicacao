@@ -2923,8 +2923,77 @@ renameRoomButton.addEventListener('click', async () => {
     renameRoomButton.disabled = false;
   }
 });
+    const deleteRoomButton = document.createElement('button');
+deleteRoomButton.type = 'button';
+deleteRoomButton.textContent = '🗑️';
+deleteRoomButton.title = 'Excluir cômodo';
+deleteRoomButton.setAttribute('aria-label', 'Excluir cômodo');
+deleteRoomButton.className = 'secondary';
+deleteRoomButton.style.padding = '5px 10px';
+deleteRoomButton.style.fontSize = '16px';
+deleteRoomButton.style.flexShrink = '0';
 
-    roomHeader.append(roomIcon, roomName, renameRoomButton);
+if (room === 'Sem cômodo') {
+  deleteRoomButton.style.display = 'none';
+}
+
+deleteRoomButton.addEventListener('click', async () => {
+  const confirmed = confirm(
+    'Deseja excluir o cômodo "' + room +
+    '"? Os móveis dele serão transferidos para "Sem cômodo".'
+  );
+
+  if (!confirmed) return;
+
+  deleteRoomButton.disabled = true;
+
+  try {
+    // Transfere os móveis para "Sem cômodo".
+    const { error: activityError } = await supabaseClient
+      .from('shared_mission_activities')
+      .update({ room: 'Sem cômodo' })
+      .eq('task_id', task.id)
+      .eq('room', room);
+
+    if (activityError) throw activityError;
+
+    // Remove o cômodo da lista.
+    const updatedRooms = roomList.filter(
+      existingRoom => existingRoom !== room
+    );
+
+    // Garante que "Sem cômodo" continue existindo e por último.
+    const semComodoIndex = updatedRooms.indexOf('Sem cômodo');
+
+    if (semComodoIndex !== -1) {
+      updatedRooms.splice(semComodoIndex, 1);
+    }
+
+    updatedRooms.push('Sem cômodo');
+
+    const { error: roomError } = await supabaseClient
+      .from('shared_tasks')
+      .update({ rooms: updatedRooms })
+      .eq('id', task.id);
+
+    if (roomError) throw roomError;
+
+    await openSharedMissionWithFreshData(task.id);
+    await loadSharedTasks();
+
+  } catch (error) {
+    console.error('Erro ao excluir cômodo:', error);
+    alert('Não foi possível excluir o cômodo. Verifique sua conexão.');
+    deleteRoomButton.disabled = false;
+  }
+});
+
+    roomHeader.append(
+  roomIcon,
+  roomName,
+  renameRoomButton,
+  deleteRoomButton
+);
 roomCard.append(roomHeader);
 const roomSection = document.createElement('div');
 roomSection.style.paddingLeft = '4px';
