@@ -2769,7 +2769,13 @@ if (isFurnitureMission) {
     activityList.append(empty);
   }
 
-  activities.forEach(activity => {
+  const orderedActivities = isFurnitureMission
+  ? [...activities].sort(
+      (a, b) => Number(b.is_completed) - Number(a.is_completed)
+    )
+  : activities;
+
+orderedActivities.forEach(activity => {
     const row = document.createElement('div');
     row.style.display = 'flex';
     row.style.alignItems = 'center';
