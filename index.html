@@ -2769,7 +2769,24 @@ if (isFurnitureMission) {
     activityList.append(empty);
   }
 
-  
+
+  const roomList = Array.isArray(task.rooms)
+  ? [...task.rooms]
+  : [
+      'Sala de estar',
+      'Cozinha',
+      'Quarto',
+      'Sala de jantar',
+      'Lavanderia',
+      'Banheiro'
+    ];
+  activities.forEach(activity => {
+  const room = activity.room || 'Sem cômodo';
+
+  if (!roomList.includes(room)) {
+    roomList.push(room);
+  }
+});
   const orderedActivities = isFurnitureMission
     ? [...activities].sort((a, b) => {
         const roomA = a.room || 'Sem cômodo';
@@ -2783,54 +2800,50 @@ if (isFurnitureMission) {
       })
     : activities;
 
-  let currentRoom = '';
+  let roomSections = {};
 
-  orderedActivities.forEach(activity => {
+if (isFurnitureMission) {
+  roomList.forEach(room => {
+    const roomHeader = document.createElement('div');
+    roomHeader.style.display = 'flex';
+    roomHeader.style.alignItems = 'center';
+    roomHeader.style.gap = '8px';
+    roomHeader.style.marginTop = '18px';
+    roomHeader.style.marginBottom = '4px';
+    roomHeader.style.padding = '10px 0';
+    roomHeader.style.borderBottom = '1px solid var(--border)';
+    roomHeader.style.fontWeight = '700';
+    roomHeader.style.fontSize = '15px';
+    roomHeader.dataset.room = room;
 
-    if (isFurnitureMission) {
-      const room = activity.room || 'Sem cômodo';
+    const roomIcons = {
+      'Sala de estar': '🛋️',
+      'Cozinha': '🍳',
+      'Quarto': '🛏️',
+      'Sala de jantar': '🍽️',
+      'Lavanderia': '🧺',
+      'Banheiro': '🚿'
+    };
 
-      if (room !== currentRoom) {
-        currentRoom = room;
+    const roomIcon = document.createElement('span');
+    roomIcon.textContent = roomIcons[room] || '🏠';
 
-        const roomHeader = document.createElement('div');
-        roomHeader.style.display = 'flex';
-        roomHeader.style.alignItems = 'center';
-        roomHeader.style.gap = '8px';
-        roomHeader.style.marginTop = '18px';
-        roomHeader.style.marginBottom = '4px';
-        roomHeader.style.padding = '10px 0';
-        roomHeader.style.borderBottom = '1px solid var(--border)';
-        roomHeader.style.fontWeight = '700';
-        roomHeader.style.fontSize = '15px';
+    const roomName = document.createElement('span');
+    roomName.textContent = room;
 
-        const roomIcon = document.createElement('span');
-        const roomIcons = {
-          'Sala de estar': '🛋️',
-          'Cozinha': '🍳',
-          'Quarto': '🛏️',
-          'Sala de jantar': '🍽️',
-          'Lavanderia': '🧺',
-          'Banheiro': '🚿'
-        };
-
-        roomIcon.textContent = roomIcons[room] || '🏠';
-
-        const roomName = document.createElement('span');
-        roomName.textContent = room;
-
-        
-        roomHeader.append(roomIcon, roomName);
-
-        roomHeader.dataset.room = room;
-
-roomHeader.style.transition = 'background 0.2s ease';
-roomHeader.style.borderRadius = '8px';
-
+    roomHeader.append(roomIcon, roomName);
 activityList.append(roomHeader);
 
-      }
-    }
+const roomSection = document.createElement('div');
+roomSection.style.paddingLeft = '4px';
+
+roomSections[room] = roomSection;
+
+activityList.append(roomSection);
+  });
+}
+
+orderedActivities.forEach(activity => {
 
     const row = document.createElement('div');
     row.style.display = 'flex';
@@ -2839,102 +2852,54 @@ activityList.append(roomHeader);
     row.style.padding = '12px 0';
     row.style.borderBottom = '1px solid var(--border)';
     
-    let dragHandle = null;
+    
+let dragHandle = null;
 
 if (isFurnitureMission) {
   dragHandle = document.createElement('span');
   dragHandle.textContent = '☰';
-  dragHandle.title = 'Arraste para outro cômodo';
-  dragHandle.style.cursor = 'grab';
+  dragHandle.title = 'Mover para outro cômodo';
+  dragHandle.style.cursor = 'pointer';
   dragHandle.style.fontSize = '19px';
   dragHandle.style.color = 'var(--muted)';
   dragHandle.style.flexShrink = '0';
-  dragHandle.style.touchAction = 'none';
-  dragHandle.style.position = 'relative';
-  dragHandle.style.zIndex = '5';
   dragHandle.style.padding = '8px';
   dragHandle.style.display = 'inline-flex';
   dragHandle.style.alignItems = 'center';
-  dragHandle.style.userSelect = 'none';
 
-  dragHandle.addEventListener('pointerdown', event => {
-    event.preventDefault();
-    console.log('Iniciou movimentação do móvel:', activity.activity_name);
-    row.style.opacity = '0.45';
-    dragHandle.style.cursor = 'grabbing';
+  dragHandle.addEventListener('click', async () => {
+    const rooms = [...roomList];
 
-    const movePointer = moveEvent => {
-      const target = document.elementFromPoint(
-        moveEvent.clientX,
-        moveEvent.clientY
-      );
+    const destinationRoom = prompt(
+      'Digite o número do cômodo para onde deseja mover "' +
+      activity.activity_name +
+      '":\n\n' +
+      rooms.map((room, index) => `${index + 1} - ${room}`).join('\n')
+    );
 
-      document.querySelectorAll('[data-room]').forEach(header => {
-        header.style.background = '';
-      });
+    if (destinationRoom === null || !destinationRoom.trim()) return;
 
-      const roomTarget = target?.closest('[data-room]');
-      if (roomTarget) {
-        roomTarget.style.background = 'var(--card)';
-      }
-    };
+    const roomIndex = Number(destinationRoom) - 1;
 
-    const finishMove = async moveEvent => {
-      document.removeEventListener('pointermove', movePointer);
-      document.removeEventListener('pointerup', finishMove);
-      document.removeEventListener('pointercancel', cancelMove);
+    if (!Number.isInteger(roomIndex) || !rooms[roomIndex]) {
+      alert('Número de cômodo inválido.');
+      return;
+    }
 
-      row.style.opacity = '1';
-      dragHandle.style.cursor = 'grab';
+    const { error } = await supabaseClient
+      .from('shared_mission_activities')
+      .update({ room: rooms[roomIndex] })
+      .eq('id', activity.id)
+      .eq('task_id', task.id);
 
-      document.querySelectorAll('[data-room]').forEach(header => {
-        header.style.background = '';
-      });
+    if (error) {
+      console.error('Erro ao mover móvel:', error);
+      alert('Não foi possível mover o móvel.');
+      return;
+    }
 
-      const target = document.elementFromPoint(
-        moveEvent.clientX,
-        moveEvent.clientY
-      );
-
-      const roomTarget = target?.closest('[data-room]');
-      const destinationRoom = roomTarget?.dataset.room;
-
-      if (!destinationRoom || destinationRoom === (activity.room || 'Sem cômodo')) {
-        return;
-      }
-
-      const { error } = await supabaseClient
-        .from('shared_mission_activities')
-        .update({ room: destinationRoom })
-        .eq('id', activity.id)
-        .eq('task_id', task.id);
-
-      if (error) {
-        console.error('Erro ao mover móvel:', error);
-        alert('Não foi possível mover o móvel.');
-        return;
-      }
-
-      await openSharedMissionWithFreshData(task.id);
-      await loadSharedTasks();
-    };
-
-    const cancelMove = () => {
-      document.removeEventListener('pointermove', movePointer);
-      document.removeEventListener('pointerup', finishMove);
-      document.removeEventListener('pointercancel', cancelMove);
-
-      row.style.opacity = '1';
-      dragHandle.style.cursor = 'grab';
-
-      document.querySelectorAll('[data-room]').forEach(header => {
-        header.style.background = '';
-      });
-    };
-
-    document.addEventListener('pointermove', movePointer);
-    document.addEventListener('pointerup', finishMove);
-    document.addEventListener('pointercancel', cancelMove);
+    await openSharedMissionWithFreshData(task.id);
+    await loadSharedTasks();
   });
 }
 
@@ -3203,7 +3168,17 @@ if (isFurnitureMission) {
     }
 
 
-    activityList.append(row);
+        if (isFurnitureMission) {
+      const furnitureRoom = activity.room || 'Sem cômodo';
+
+      if (roomSections[furnitureRoom]) {
+        roomSections[furnitureRoom].append(row);
+      } else {
+        activityList.append(row);
+      }
+    } else {
+      activityList.append(row);
+    }
   });
 
   if (isFurnitureMission) {
@@ -3243,6 +3218,7 @@ if (isFurnitureMission) {
   
   if (isFurnitureMission) {
     const addFurnitureButton = document.createElement('button');
+
     addFurnitureButton.type = 'button';
     addFurnitureButton.textContent = '+ Adicionar mais móveis';
     addFurnitureButton.className = 'secondary';
@@ -3304,6 +3280,57 @@ if (isFurnitureMission) {
     });
 
     activityList.append(addFurnitureButton);
+    
+const addRoomButton = document.createElement('button');
+addRoomButton.type = 'button';
+addRoomButton.textContent = '+ Adicionar cômodo da casa';
+addRoomButton.className = 'secondary';
+addRoomButton.style.width = '100%';
+addRoomButton.style.marginTop = '8px';
+
+addRoomButton.addEventListener('click', async () => {
+  const name = prompt('Qual cômodo deseja adicionar?');
+
+  if (name === null) return;
+
+  const roomName = name.trim();
+
+  if (!roomName) {
+    alert('Digite o nome do cômodo.');
+    return;
+  }
+
+  if (roomList.some(room =>
+    room.toLowerCase() === roomName.toLowerCase()
+  )) {
+    alert('Esse cômodo já existe.');
+    return;
+  }
+
+  addRoomButton.disabled = true;
+
+  try {
+    const updatedRooms = [...roomList, roomName];
+
+    const { error } = await supabaseClient
+      .from('shared_tasks')
+      .update({ rooms: updatedRooms })
+      .eq('id', task.id);
+
+    if (error) throw error;
+
+    await openSharedMissionWithFreshData(task.id);
+    await loadSharedTasks();
+
+  } catch (error) {
+    console.error('Erro ao adicionar cômodo:', error);
+    alert('Não foi possível adicionar o cômodo: ' + error.message);
+    addRoomButton.disabled = false;
+  }
+});
+
+activityList.append(addRoomButton);
+
   }
 
   modal.style.display = 'flex';
@@ -3589,7 +3616,7 @@ async function openSharedMissionWithFreshData(taskId) {
 
   const { data: task, error: taskError } = await supabaseClient
     .from('shared_tasks')
-    .select('id, title, due_date, reward')
+    .select('id, title, due_date, reward, rooms')
     .eq('id', taskId)
     .single();
 
@@ -3656,7 +3683,7 @@ if (memberError) {
   const { data: tasks, error: tasksError } =
     await supabaseClient
       .from('shared_tasks')
-      .select('id, couple_id, title, category, due_date, due_time, repeat_rule, details, points, reward')
+      .select('id, title, category, due_date, due_time, repeat_rule, details, points, reward, rooms')
       .eq('couple_id', coupleId);
 
   if (version !== sharedTasksLoadVersion) return;
