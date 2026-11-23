@@ -2856,51 +2856,92 @@ orderedActivities.forEach(activity => {
 let dragHandle = null;
 
 if (isFurnitureMission) {
-  dragHandle = document.createElement('span');
+  const menuWrapper = document.createElement('div');
+  menuWrapper.style.position = 'relative';
+  menuWrapper.style.flexShrink = '0';
+
+  dragHandle = document.createElement('button');
+  dragHandle.type = 'button';
   dragHandle.textContent = '⋮';
   dragHandle.title = 'Mover para outro cômodo';
-  dragHandle.style.cursor = 'pointer';
-  dragHandle.style.fontSize = '19px';
-  dragHandle.style.color = 'var(--muted)';
-  dragHandle.style.flexShrink = '0';
-  dragHandle.style.padding = '8px';
-  dragHandle.style.display = 'inline-flex';
-  dragHandle.style.alignItems = 'center';
+  dragHandle.className = 'secondary';
+  dragHandle.style.fontSize = '22px';
+  dragHandle.style.padding = '5px 10px';
 
-  dragHandle.addEventListener('click', async () => {
-    const rooms = [...roomList];
+  const roomMenu = document.createElement('div');
+  roomMenu.style.display = 'none';
+  roomMenu.style.position = 'absolute';
+  roomMenu.style.top = '100%';
+  roomMenu.style.right = '0';
+  roomMenu.style.width = '210px';
+  roomMenu.style.maxHeight = '260px';
+  roomMenu.style.overflowY = 'auto';
+  roomMenu.style.padding = '10px';
+  roomMenu.style.background = 'white';
+  roomMenu.style.border = '1px solid var(--border)';
+  roomMenu.style.borderRadius = '12px';
+  roomMenu.style.boxShadow = '0 4px 14px rgba(0,0,0,0.15)';
+  roomMenu.style.zIndex = '1000';
 
-    const destinationRoom = prompt(
-      'Digite o número do cômodo para onde deseja mover "' +
-      activity.activity_name +
-      '":\n\n' +
-      rooms.map((room, index) => `${index + 1} - ${room}`).join('\n')
-    );
+  const menuTitle = document.createElement('div');
+  menuTitle.textContent =
+    'Para qual cômodo deseja mover este móvel?';
+  menuTitle.style.fontWeight = '700';
+  menuTitle.style.fontSize = '13px';
+  menuTitle.style.marginBottom = '10px';
 
-    if (destinationRoom === null || !destinationRoom.trim()) return;
+  roomMenu.append(menuTitle);
 
-    const roomIndex = Number(destinationRoom) - 1;
+  roomList.forEach(room => {
+    const roomButton = document.createElement('button');
+    roomButton.type = 'button';
+    roomButton.textContent = room;
+    roomButton.className = 'secondary';
+    roomButton.style.display = 'block';
+    roomButton.style.width = '100%';
+    roomButton.style.marginTop = '5px';
+    roomButton.style.textAlign = 'left';
 
-    if (!Number.isInteger(roomIndex) || !rooms[roomIndex]) {
-      alert('Número de cômodo inválido.');
-      return;
-    }
+    roomButton.addEventListener('click', async () => {
+      if (room === (activity.room || 'Sem cômodo')) {
+        roomMenu.style.display = 'none';
+        return;
+      }
 
-    const { error } = await supabaseClient
-      .from('shared_mission_activities')
-      .update({ room: rooms[roomIndex] })
-      .eq('id', activity.id)
-      .eq('task_id', task.id);
+      roomButton.disabled = true;
 
-    if (error) {
-      console.error('Erro ao mover móvel:', error);
-      alert('Não foi possível mover o móvel.');
-      return;
-    }
+      const { error } = await supabaseClient
+        .from('shared_mission_activities')
+        .update({ room: room })
+        .eq('id', activity.id)
+        .eq('task_id', task.id);
 
-    await openSharedMissionWithFreshData(task.id);
-    await loadSharedTasks();
+      if (error) {
+        console.error('Erro ao mover móvel:', error);
+        alert('Não foi possível mover o móvel.');
+        roomButton.disabled = false;
+        return;
+      }
+
+      roomMenu.style.display = 'none';
+
+      await openSharedMissionWithFreshData(task.id);
+      await loadSharedTasks();
+    });
+
+    roomMenu.append(roomButton);
   });
+
+  dragHandle.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    roomMenu.style.display =
+      roomMenu.style.display === 'none' ? 'block' : 'none';
+  });
+
+  menuWrapper.append(dragHandle, roomMenu);
+  dragHandle = menuWrapper;
 }
 
 
