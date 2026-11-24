@@ -150,6 +150,7 @@ label {
 
 
 /* NAVEGAÇÃO PRINCIPAL */
+
 .main-nav {
   display: flex;
   justify-content: space-around;
@@ -188,6 +189,21 @@ label {
 .main-nav button.active {
   color: var(--primary, #5267D8);
   font-weight: 700;
+}
+
+/* Barra de navegação no tema preto */
+body[data-theme="black"] .main-nav {
+  background: #171717;
+  border-top: 1px solid #333333;
+}
+
+body[data-theme="black"] .main-nav button {
+  background: transparent;
+  color: #999999;
+}
+
+body[data-theme="black"] .main-nav button.active {
+  color: #ffffff;
 }
 
 
@@ -1324,12 +1340,6 @@ body[data-theme="black"] .monthly-dot.missed {
 
  </div>
 </div>
-
-<div class="card" style="margin-top:18px;">
-  <h3>Tarefas cadastradas</h3>
-  <div id="itemList"></div>
-</div>
-
 
 <section id="settingsPage" class="page">
 
