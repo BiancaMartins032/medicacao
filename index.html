@@ -834,16 +834,25 @@ body[data-theme="black"] .monthly-dot.missed {
 
 <section id="home" class="page active">
   
+
 <div class="card">
-  <button
-    type="button"
-    class="secondary"
-    onclick="showPage('calendarPage', document.querySelector('.main-nav button'))"
-    style="width:100%;"
-  >
-    Ver meu calendário
-  </button>
+  <h3>Meu calendário</h3>
+
+  <div class="month">
+    <button class="secondary" onclick="changeMonth(-1)">‹</button>
+    <strong id="monthName"></strong>
+    <button class="secondary" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <div class="calendar" id="calendar"></div>
+
+  <div class="legend">
+    Verde: concluído · Vermelho: não realizado
+  </div>
+
+  <div id="dayDetails"></div>
 </div>
+
 
   <h2 class="home-title">Rotina de hoje</h2>
 
@@ -989,32 +998,7 @@ body[data-theme="black"] .monthly-dot.missed {
 </div>
 </section>
 
-<section id="calendarPage" class="page">
 
-  <div class="card">
-    <button
-      type="button"
-      class="secondary"
-      onclick="showPage('home', document.querySelector('.main-nav button'))"
-      style="width:100%; margin-bottom:16px;"
-    >
-      ← Voltar para minha rotina
-    </button>
-
-    <h3>Meu calendário</h3>
-    <div class="month">
-      <button class="secondary" onclick="changeMonth(-1)">‹</button>
-      <strong id="monthName"></strong>
-      <button class="secondary" onclick="changeMonth(1)">›</button>
-    </div>
-    <div class="calendar" id="calendar"></div>
-        <div class="legend">Verde: concluído · Vermelho: não realizado</div>
-    <div id="dayDetails"></div>
-  </div>
-
-</section>
-
-  
 <section id="reportPage" class="page">
 
   <div class="card">
@@ -2601,6 +2585,7 @@ document.getElementById('taskModal')?.addEventListener('click', function(event) 
 });
 
 
+
 function showPage(id, btn) {
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
@@ -2615,8 +2600,6 @@ function showPage(id, btn) {
 
   if (btn) {
     btn.classList.add('active');
-  } else if (id === 'calendarPage' || id === 'home') {
-    navButtons[0]?.classList.add('active');
   } else {
     navButtons.forEach(b => {
       if (b.getAttribute('onclick')?.includes(`'${id}'`)) {
@@ -2627,6 +2610,7 @@ function showPage(id, btn) {
 
   render();
 }
+
 
 
 function isScheduled(item, date) {
@@ -5929,9 +5913,12 @@ chartCenter.style.color = chartColors.text;
   );
 
   cat.dataset.lastMessage = selectedMessage;
-  cat.src = catImages[reaction];
-  cat.alt = `Gatinho ${reaction}`;
-  catMessage.textContent = selectedMessage;
+cat.src = catImages[reaction];
+cat.alt = `Gatinho ${reaction}`;
+catMessage.textContent = selectedMessage;
+
+// Atualiza o calendário dentro da aba Eu
+renderCalendar();
 }
 
 
@@ -6475,10 +6462,6 @@ function render() {
 
   if (activePage.id === 'schedulePage') {
     renderItems();
-  }
-
-  if (activePage.id === 'calendarPage') {
-    renderCalendar();
   }
 
   if (activePage.id === 'reportPage') {
