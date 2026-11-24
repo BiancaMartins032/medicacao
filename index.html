@@ -833,25 +833,6 @@ body[data-theme="black"] .monthly-dot.missed {
 
 
 <section id="home" class="page active">
-  
-
-<div class="card">
-  <h3>Meu calendário</h3>
-
-  <div class="month">
-    <button class="secondary" onclick="changeMonth(-1)">‹</button>
-    <strong id="monthName"></strong>
-    <button class="secondary" onclick="changeMonth(1)">›</button>
-  </div>
-
-  <div class="calendar" id="calendar"></div>
-
-  <div class="legend">
-    Verde: concluído · Vermelho: não realizado
-  </div>
-
-  <div id="dayDetails"></div>
-</div>
 
 
   <h2 class="home-title">Rotina de hoje</h2>
@@ -1005,6 +986,25 @@ body[data-theme="black"] .monthly-dot.missed {
     <h2>Meu relatório</h2>
     <p>Acompanhe sua evolução e suas conquistas ao longo do tempo.</p>
   </div>
+  
+<div class="card">
+  <h3>Meu calendário</h3>
+
+  <div class="month">
+    <button class="secondary" onclick="changeMonth(-1)">‹</button>
+    <strong id="monthName"></strong>
+    <button class="secondary" onclick="changeMonth(1)">›</button>
+  </div>
+
+  <div class="calendar" id="calendar"></div>
+
+  <div class="legend">
+    Verde: concluído · Vermelho: não realizado
+  </div>
+
+  <div id="dayDetails"></div>
+</div>
+
 
   <div class="card monthly-summary">
     <h3>Minha evolução mensal</h3>
@@ -5916,9 +5916,6 @@ chartCenter.style.color = chartColors.text;
 cat.src = catImages[reaction];
 cat.alt = `Gatinho ${reaction}`;
 catMessage.textContent = selectedMessage;
-
-// Atualiza o calendário dentro da aba Eu
-renderCalendar();
 }
 
 
@@ -6465,8 +6462,8 @@ function render() {
   }
 
   if (activePage.id === 'reportPage') {
-    renderMonthlySummary();
-  }
+  renderCalendar();
+}
 
   if (activePage.id === 'couplePage') {
     loadSharedTasks();
